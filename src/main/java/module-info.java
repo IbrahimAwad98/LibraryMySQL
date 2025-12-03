@@ -4,7 +4,7 @@ module BookDatabase {
     requires javafx.controls;
     requires javafx.graphics;
     requires javafx.fxml;
-    requires javafx.web;
+    //requires javafx.web;
 
     /*
     // Extra UI libraries
@@ -17,7 +17,7 @@ module BookDatabase {
     requires com.almasb.fxgl.all;
     */
 
-    requires com.mysql.cj.jdbc;
+    //requires com.mysql.cj.jdbc;
 
     opens se.kth.awad.bookdatabase to javafx.base, javafx.graphics, javafx.fxml;
     opens se.kth.awad.bookdatabase.model to javafx.base;

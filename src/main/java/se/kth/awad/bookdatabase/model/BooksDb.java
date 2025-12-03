@@ -3,16 +3,11 @@ package se.kth.awad.bookdatabase.model;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
- * A mock implementation of the BooksDBInterface interface to demonstrate how to
- * use it together with the user interface.
- * <p>
- * Your implementation must access a real database.
- *
- * @author anderslm@kth.se
+ *  JDBC-implementation av BooksDbInterface.
+ *  Denna klass kommunicerar direkt med LibraryDB i MySQL.
  */
 public class BooksDb implements BooksDbInterface {
 

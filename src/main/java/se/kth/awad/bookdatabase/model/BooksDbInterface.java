@@ -2,45 +2,43 @@ package se.kth.awad.bookdatabase.model;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This interface declares methods for querying a Books database.
- * Different implementations of this interface handles the connection and
- * queries to a specific DBMS and database, for example a MySQL or a MongoDB
- * database.
+ * Interface för databaskommunikation med LibraryDB.
  *
- * NB! The methods in the implementation must catch the SQL/MongoDBExceptions thrown
- * by the underlying driver, wrap in a BooksDbException and then re-throw the latter
- * exception. This way the interface is the same for both implementations, because the
- * exception type in the method signatures is the same. More info in BooksDbException.java.
+ * Detta är KRAV 3 i uppgiften:
+ * "Koden som kommunicerar med databasen ska ha separata metoder för varje
+ * specifik select/update/insert-sats(er) som klientapplikationen ska kunna
+ * exekvera på servern."
  *
- * @author anderslm@kth.se
+ * VIKTIGT: Kontrollern ska endast känna till detta interface, INTE
+ * implementationen (BooksDbImpl)!
  */
 public interface BooksDbInterface {
 
+   //Sökning metoder
+  ArrayList<Book> searchBooksByTitle(String searchString) throws Exception;
+  Book searchBookByISBN(String ISBN) throws Exception;
+  ArrayList<Book> searchBooksByAuthor(String authorName) throws Exception;
+  ArrayList<Book> searchBooksByGenre(String genreName) throws Exception;
+  ArrayList<Book> searchBooksByRating(double minRating) throws Exception;
+
+
+  boolean addBook(Book book) throws Exception;
+  boolean addRating(int bookID, int ratingValue) throws Exception;
+
+  //Hämtar data för GUI
+  ArrayList<Author> getAuthorsForBook(int bookID) throws Exception;
+  ArrayList<Author> getAllAuthors() throws Exception;
+  ArrayList<Genre> getAllGenres() throws Exception;
+  ArrayList<Genre> getGenresForBook(int bookID) throws Exception;
+
     /**
-     * Connect to the database.
-     * @param database
-     * @return true on successful connection.
+     * Kopplar bort från databasen.
+     * Måste anropas när applikationen stängs!
      */
-    public boolean connect(String database) throws BooksDbException;
+  void disconnect() throws Exception;
 
-    public boolean disconnect() throws BooksDbException;
-    public List<Book> retrieveBookTable() throws BooksDbException;
-    public List<Book> searchBooksByTitle(String title) throws BooksDbException;
-    public List<Book> searchBooksByISBN(String isbn) throws  BooksDbException;
-    public List<Book> searchBooksByAuthor(String name) throws  BooksDbException;
-    public List<Book> searchBooksByGrade(String grade) throws  BooksDbException;
-    public List<Book> searchBooksByGenre(String genre) throws  BooksDbException;
-    public void insertBook(Book book) throws BooksDbException;
-    public void deleteBook(Book book) throws BooksDbException;
-    public void updateBook(Book book) throws BooksDbException;
-
-
-
-
-
-    // TODO: Add abstract methods for all inserts, deletes and queries
-    // mentioned in the instructions for the assignment.
 }

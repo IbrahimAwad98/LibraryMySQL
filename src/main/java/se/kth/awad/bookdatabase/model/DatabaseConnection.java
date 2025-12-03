@@ -4,13 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-/**
- * Manages database connections for the application.
- * Single Responsibility: Connection lifecycle management only.
- * Uses Singleton pattern to ensure only one connection exists.
- *
- * @author anderslm@kth.se
- */
+
 public class DatabaseConnection {
 
     private static DatabaseConnection instance = null;
@@ -134,4 +128,3 @@ public class DatabaseConnection {
         return currentDatabase;
     }
 }
-

@@ -1,111 +1,182 @@
 package se.kth.awad.bookdatabase.model;
 
-
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * Representation of a book.
- *
- * @author anderslm@kth.se
+ * Representerar en bok från T_Book tabellen i LibraryDB.
+ * Den har relation till Genre, author och rating
  */
 public class Book {
-
-    private int bookId;
-    private String isbn; // should check format
-    private String title;
-    private Date published;
-    private String storyLine = "";
-    private int grade;
+    private int bookID;
+    private String ISBN, title;
+    private Date publishedDate;
+    //ArrayList för (M:N) relationer.
     private ArrayList<Author> authors;
-    private Genre genre;
-    private static final Pattern ISBN_PATTERN =
-            Pattern.compile("^(978|979)\\d{10}$");
+    private ArrayList<Genre> genres;
+    //Betyginfo från T_Rating
+    private double averageRating;
+    private int numRatings;
 
-
-    // TODO:
-    // Add authors, as a separate class(!), and corresponding methods, to your implementation
-    // as well, i.e. "private ArrayList<Author> authors;"
-
-    public Book(int bookId, String isbn, String title, Date published,Genre genre ,int grade) {
-        if (!isValidIsbn(isbn)) {
-            throw new IllegalArgumentException("Invalid ISBN !!!");
-        }else if(!isValidGrade(grade)){
-            throw new IllegalArgumentException("Invalid Grade !!!");
-        }
-        this.bookId = bookId;
-        this.isbn = isbn;
+    // Konstruktor för att läsa från databasen (med ID).
+    public Book(int bookID,
+                String ISBN,
+                String title,
+                Date publishedDate){
+        this.bookID = bookID;
+        this.ISBN = ISBN;
         this.title = title;
-        this.published = published;
-        this.genre = genre;
-        this.grade = grade;
+        this.publishedDate = publishedDate;
         this.authors = new ArrayList<>();
+        this.genres = new ArrayList<>();
+        this.averageRating = 0;
+        this.numRatings = 0;
     }
 
-    public Book(String isbn, String title, Date published, String genre,int grade) {
-        this(-1, isbn, title, published, parseGenre(genre), grade);
-    }
-    public Book(String isbn, String title, Date published, Genre genre,int grade) {
-        this(-1, isbn, title, published, genre, grade);
+     // Konstruktor för att skapa ny bok (utan ID).
+    public Book(String ISBN, String title, Date publishedDate){
+        this(-1, ISBN, title, publishedDate);
     }
 
-    public int getBookId() { return bookId; }
-    public String getIsbn() { return isbn; }
-    public String getTitle() { return title; }
-    public Date getPublished() { return published; }
-    public String getStoryLine() { return storyLine; }
-    public Genre getGenre() { return genre; }
-
-    public static Genre parseGenre(String genreString) {
-        return Genre.valueOf(genreString.toUpperCase());
-    }
-    public String getStringGenre (Genre genre){
-        return String.valueOf(genre);
-    }
-    public int getGrade() { return grade; }
-    public Author getAuthor(int n){
-        return authors.get(n);
+    public int getBookID(){
+        return bookID;
     }
 
-    public ArrayList<Author> getAuthores() {
-        return new ArrayList<>(authors);
+    public String getISBN(){
+        return ISBN;
     }
-    public String getAuthors() {
+
+    public String getTitle(){
+        return title;
+    }
+
+    public Date getPublishedDate(){
+        return publishedDate;
+    }
+
+    /**
+     *
+     * @return direkt referens
+     * den fungerar eftersom vi behöver ändra listor direkt
+     * ingen säkerhets risk.
+     */
+    public ArrayList<Author> getAuthors(){
+        return authors;
+    }
+
+    public ArrayList<Genre> getGenres(){
+        return genres;
+    }
+
+
+    public double getAverageRating(){
+        return averageRating;
+    }
+
+    public int getNumRatings(){
+        return numRatings;
+    }
+
+    public void setBookID(int newID){
+        this.bookID = newID;
+    }
+
+    public void setISBN(String newISBN){
+        this.ISBN = newISBN;
+    }
+
+    public void setTitle(String newTitle){
+        this.title = newTitle;
+    }
+
+    public void setPublishedDate(Date newDate){
+        this.publishedDate = newDate;
+    }
+
+    public void setAuthors(ArrayList<Author> newAuthors){
+        this.authors = newAuthors;
+    }
+
+    public void setGenres(ArrayList<Genre> genres) {
+        this.genres = genres;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public void setNumRatings(int numRatings) {
+        this.numRatings = numRatings;
+    }
+
+    // Metoder
+
+    public void addAuthor(Author author){
+        if(!this.authors.contains(author)){ //inga dubbletter
+            this.authors.add(author);
+        }
+    }
+
+    public void addGenre(Genre genre){
+        if(!this.genres.contains(genre)){ //dubbletter
+            this.genres.add(genre);
+        }
+    }
+
+    public String getAuthorsAsString() {
+        if (authors.isEmpty()) {
+            return "Unknown";
+        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < authors.size(); i++) {
-            if (i == 0) {
-                sb.append(authors.get(i).getName());
-            } else {
-                sb.append(", ").append(authors.get(i).getName());
+            sb.append(authors.get(i).getName());
+            if (i < authors.size() - 1) {
+                sb.append(", ");
             }
         }
         return sb.toString();
     }
 
-    public void setStoryLine(String storyLine) {
-        this.storyLine = storyLine;
+
+    public String getGenresAsString() {
+        if (genres.isEmpty()) {
+            return "Unknown";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < genres.size(); i++) {
+            sb.append(genres.get(i).getGenreName());
+            if (i < genres.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 
-    public void setAuthor(Author author) {
-        this.authors.add(author);
-    }
-    public void setGrade(int grade){
-        this.grade = grade;
+
+    public String getPublishedYear(){
+        if(publishedDate == null){
+            return "N/A";
+        }
+        return String.valueOf(publishedDate.toLocalDate().getYear());
     }
 
-    public static boolean isValidIsbn(String isbn) {
-        return ISBN_PATTERN.matcher(isbn).matches();
-    }
-    public static boolean isValidGrade(int grade){
-        if (grade <= 0 || grade > 5){
+    // Object metoder
+
+    public boolean equals(Object obj){
+        if(this == obj){
+            return true;
+        }
+        if(obj == null || getClass() != obj.getClass()){
             return false;
         }
-        return true;
+        Book book = (Book) obj;
+        return bookID == book.bookID;
     }
 
-    @Override
-    public String toString() {
-        return title + ", " + isbn + ", " + published.toString();
+    public int hashCode(){
+        return Objects.hash(bookID);
     }
+
 }
