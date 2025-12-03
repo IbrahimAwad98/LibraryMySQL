@@ -4,21 +4,25 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-
+/**
+ * Hanterar databasanslutningar för applikationen.
+ * Singelton desgin eftersom säkerställer att en endast databasanslutning finns i hela programmet.
+ */
 public class DatabaseConnection {
 
+    // endast en intans tillåten
     private static DatabaseConnection instance = null;
     private Connection connection;
     private String currentDatabase;
 
     // Database configuration
     private static final String SERVER_URL = "jdbc:mysql://localhost:3306/";
-    private static final String USERNAME = "ahmed";
-    private static final String PASSWORD = "Ahmed-1993";
+    private static final String USERNAME = "Admin";
+    private static final String PASSWORD = "Admin2025";
     private static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
 
     /**
-     * Private constructor to prevent direct instantiation (Singleton pattern)
+     * Privat konstruktor för att förhindra direkt instansiering (Singleton-mönster).
      */
     private DatabaseConnection() {
         this.connection = null;
@@ -26,10 +30,10 @@ public class DatabaseConnection {
     }
 
     /**
-     * Get the single instance of DatabaseConnection (Singleton pattern)
-     * @return the DatabaseConnection instance
+     * Trådsäker implementation.
+     * @return DatabaseConnection-instansen
      */
-    public static DatabaseConnection getInstance() {
+    public static synchronized  DatabaseConnection getInstance() {
         if (instance == null) {
             instance = new DatabaseConnection();
         }
@@ -37,42 +41,55 @@ public class DatabaseConnection {
     }
 
     /**
-     * Connect to a specific MySQL database
-     * @param database the name of the database to connect to
-     * @return true if connection was successful
-     * @throws BooksDbException if connection fails
+     *
+     * @param database (LibraryDB)
+     * @return  true = anslutat
+     * @throws BooksDbException om anslutningen misslyckas
      */
     public boolean connect(String database) throws BooksDbException {
         try {
-            // Close existing connection if any
+            // Stäng befintlig anslutning om det finns någon
             if (connection != null && !connection.isClosed()) {
+                System.out.println("[DatabaseConnection] Closing existing connection to: " +
+                        currentDatabase);
                 connection.close();
             }
 
-            // Load MySQL JDBC driver
-            Class.forName(DRIVER_CLASS);
+            try {
+                Class.forName(DRIVER_CLASS);
+                System.out.println("[DatabaseConnection] JDBC Driver loaded: " + DRIVER_CLASS);
+            } catch (ClassNotFoundException e) {
+                // Moderna Java-versioner behöver inte explicit drivrutinsladdning
+                System.out.println("[DatabaseConnection] Note: Driver auto-loaded (Java 6+)");
+            }
 
-            // Build connection URL
-            String fullUrl = SERVER_URL + database + "?UseClientEnc=UTF8";
+            // Bygg anslutnings-URL med UTF-8-kodning för svenska tecken
+            String fullUrl = SERVER_URL + database + "?useUnicode=true&characterEncoding=UTF-8";
 
-            // Establish connection
+            System.out.println("[DatabaseConnection] Connecting to: " + fullUrl);
+            System.out.println("[DatabaseConnection] User: " + USERNAME);
+
+            // Etablera anslutning
             connection = DriverManager.getConnection(fullUrl, USERNAME, PASSWORD);
             currentDatabase = database;
 
-            System.out.println("Successfully connected to database: " + database);
+            System.out.println("[DatabaseConnection] Successfully connected to database: " + database);
             return true;
 
-        } catch (ClassNotFoundException e) {
-            throw new BooksDbException("MySQL JDBC Driver not found", e);
         } catch (SQLException e) {
-            throw new BooksDbException("Failed to connect to database: " + database, e);
+            // Fångar alla SQLException (både från close() och getConnection())
+            throw new BooksDbException(
+                    "Failed to connect to database: " + database + " at " + SERVER_URL,
+                    e
+            );
         }
     }
 
     /**
-     * Disconnect from the current database
-     * @return true if disconnection was successful, false if not connected
-     * @throws BooksDbException if disconnection fails
+     * Kopplar bort från nuvarande databas.
+     *
+     * @return true om nedkoppling lyckades, false om inte ansluten
+     * @throws BooksDbException om nedkoppling misslyckas
      */
     public boolean disconnect() throws BooksDbException {
         try {
@@ -83,18 +100,20 @@ public class DatabaseConnection {
                 currentDatabase = null;
                 System.out.println("Disconnected from database: " + dbName);
                 return true;
+            }else {
+                System.out.println("[DatabaseConnection] No active connection to disconnect");
+                return false;
             }
-            return false;
-
         } catch (SQLException e) {
             throw new BooksDbException("Error disconnecting from database", e);
         }
     }
 
     /**
-     * Get the active database connection
-     * @return the active Connection object
-     * @throws BooksDbException if not connected to any database
+     * Hämtar den aktiva databasanslutningen.
+     *
+     * @return det aktiva Connection-objektet för SQL-operationer
+     * @throws BooksDbException om inte ansluten till någon databas
      */
     public Connection getConnection() throws BooksDbException {
         try {
@@ -109,8 +128,9 @@ public class DatabaseConnection {
     }
 
     /**
-     * Check if currently connected to a database
-     * @return true if connected, false otherwise
+     * Kontrollerar om för närvarande ansluten till en databas.
+     *
+     * @return true om ansluten, false annars
      */
     public boolean isConnected() {
         try {
@@ -121,8 +141,9 @@ public class DatabaseConnection {
     }
 
     /**
-     * Get the name of the current database
-     * @return database name, or null if not connected
+     * Hämtar namnet på nuvarande databas.
+     *
+     * @return databasnamn, eller null om inte ansluten
      */
     public String getCurrentDatabase() {
         return currentDatabase;
