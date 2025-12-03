@@ -1,20 +1,9 @@
 package se.kth.awad.bookdatabase.model;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Interface för databaskommunikation med LibraryDB.
- *
- * Detta är KRAV 3 i uppgiften:
- * "Koden som kommunicerar med databasen ska ha separata metoder för varje
- * specifik select/update/insert-sats(er) som klientapplikationen ska kunna
- * exekvera på servern."
- *
- * VIKTIGT: Kontrollern ska endast känna till detta interface, INTE
- * implementationen (BooksDbImpl)!
  */
 public interface BooksDbInterface {
 

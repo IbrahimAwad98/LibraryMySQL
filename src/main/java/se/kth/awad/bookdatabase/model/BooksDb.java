@@ -1,6 +1,5 @@
 package se.kth.awad.bookdatabase.model;
 
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
