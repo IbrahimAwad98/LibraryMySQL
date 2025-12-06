@@ -542,7 +542,52 @@ public class BooksDb implements BooksDbInterface {
 
     @Override
     public List<Book> searchBooksByRating(double minRating) throws BooksDbException {
-        throw new BooksDbException("searchBooksByRating not yet implemented");
+        List<Book> result = new ArrayList<>();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            // SQL-fråga som filtrerar böcker baserat på genomsnittligt betyg
+            String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
+                    "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
+                    "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
+                    "AVG(R.ratingValue) AS averageRating, " +
+                    "COUNT(R.ratingID) AS numRatings " +
+                    "FROM T_Book AS B " +
+                    "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
+                    "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
+                    "LEFT JOIN T_Book_Genre AS BG ON B.bookID = BG.bookID " +
+                    "LEFT JOIN T_Genre AS G ON BG.genreID = G.genreID " +
+                    "LEFT JOIN T_Rating AS R ON B.bookID = R.bookID " +
+                    "GROUP BY B.bookID, B.ISBN, B.title, B.publishedDate " +
+                    "HAVING AVG(R.ratingValue) = ?;";
+
+            pstmt = dbConnection.getConnection().prepareStatement(sql);
+            pstmt.setDouble(1, minRating);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                result.add(buildBookFromResultSet(rs));
+            }
+
+            return result;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new BooksDbException("Error searching books by rating", e);
+        } finally {
+            // Stäng resurser i finally-blocket
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 
