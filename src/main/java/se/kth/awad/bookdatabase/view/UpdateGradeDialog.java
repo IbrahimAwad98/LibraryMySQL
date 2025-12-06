@@ -6,18 +6,13 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.util.Callback;
 
-/**
- * Dialog for updating a book's grade.
- * Returns title and grade data - Controller handles the actual update.
- */
+
 public class UpdateGradeDialog extends Dialog<UpdateGradeDialog.GradeUpdate> {
 
     private final ComboBox<Integer> gradeField = new ComboBox<>();
     private final TextField titleField = new TextField();
 
-    /**
-     * Simple data holder for grade update information
-     */
+
     public static class GradeUpdate {
         private final String title;
         private final int grade;

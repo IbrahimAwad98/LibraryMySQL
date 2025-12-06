@@ -6,10 +6,7 @@ import javafx.scene.layout.GridPane;
 import javafx.util.Callback;
 import javafx.scene.control.*;
 
-/**
- * Dialog for removing a book.
- * Returns only the book title - Controller handles the actual deletion.
- */
+
 public class RemoveBookDialog extends Dialog<String> {
     private final TextField titleField = new TextField();
 
@@ -25,7 +22,6 @@ public class RemoveBookDialog extends Dialog<String> {
         grid.setHgap(5);
         grid.setVgap(5);
         grid.setPadding(new Insets(10, 10, 10, 10));
-
         grid.add(new Label("Title "), 1, 1);
         grid.add(titleField, 2, 1);
 

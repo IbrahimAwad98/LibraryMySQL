@@ -4,6 +4,7 @@ import java.util.List;
 
 /**
  * Interface för databaskommunikation med LibraryDB.
+ * mer Flexibilitet och Testbarhet
  */
 public interface BooksDbInterface {
 
@@ -63,6 +64,7 @@ public interface BooksDbInterface {
      */
     List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException;
 
+    //Create, Read, Update, Delete
     /**
      * Lägger till en ny bok i databasen.
      * @param book boken att lägga till

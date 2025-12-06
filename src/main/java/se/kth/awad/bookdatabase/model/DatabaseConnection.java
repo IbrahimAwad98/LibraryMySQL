@@ -15,13 +15,7 @@ public class DatabaseConnection {
     private Connection connection;
     private String currentDatabase;
 
-    // Database configuration
-    // TODO: Update these credentials to match your MySQL setup
-    // If using default MySQL installation, try:
-    // USERNAME = "root"
-    // PASSWORD = "your_root_password"
-    // Or create a user: CREATE USER 'Admin'@'localhost' IDENTIFIED BY 'Admin2025';
-    // Then: GRANT ALL PRIVILEGES ON LibraryDB.* TO 'Admin'@'localhost';
+    // Database configuration MySQL-installation
     private static final String SERVER_URL = "jdbc:mysql://localhost:3306/";
     private static final String USERNAME = "Admin";
     private static final String PASSWORD = "Admin2025";
@@ -47,7 +41,6 @@ public class DatabaseConnection {
     }
 
     /**
-     *
      * @param database (LibraryDB)
      * @return  true = anslutat
      * @throws BooksDbException om anslutningen misslyckas
@@ -93,7 +86,6 @@ public class DatabaseConnection {
 
     /**
      * Kopplar bort från nuvarande databas.
-     *
      * @return true om nedkoppling lyckades, false om inte ansluten
      * @throws BooksDbException om nedkoppling misslyckas
      */
@@ -117,7 +109,6 @@ public class DatabaseConnection {
 
     /**
      * Hämtar den aktiva databasanslutningen.
-     *
      * @return det aktiva Connection-objektet för SQL-operationer
      * @throws BooksDbException om inte ansluten till någon databas
      */
@@ -135,7 +126,6 @@ public class DatabaseConnection {
 
     /**
      * Kontrollerar om för närvarande ansluten till en databas.
-     *
      * @return true om ansluten, false annars
      */
     public boolean isConnected() {
@@ -148,7 +138,6 @@ public class DatabaseConnection {
 
     /**
      * Hämtar namnet på nuvarande databas.
-     *
      * @return databasnamn, eller null om inte ansluten
      */
     public String getCurrentDatabase() {

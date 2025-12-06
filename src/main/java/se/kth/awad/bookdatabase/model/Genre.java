@@ -17,7 +17,7 @@ public class Genre {
 
     //Konstruktor för att skapa ny genre (utan ID). (vid läggning i databas)
     public Genre(String genreName){
-        this(-1, genreName);
+        this(-1, genreName); //inget id än
     }
 
     public int getGenreID(){

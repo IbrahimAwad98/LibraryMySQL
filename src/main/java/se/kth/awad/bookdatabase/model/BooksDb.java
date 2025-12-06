@@ -22,9 +22,14 @@ public class BooksDb implements BooksDbInterface {
     }
 
     @Override
+    public boolean disconnect() throws BooksDbException {
+        return dbConnection.disconnect();
+    }
+
+    // Sql frågor
+    @Override
     public List<Book> retrieveBookTable() throws BooksDbException {
         List<Book> result = new ArrayList<>();
-        // Query to get books with authors, genres, and average rating from T_Rating table
         String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                 "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                 "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
@@ -41,18 +46,18 @@ public class BooksDb implements BooksDbInterface {
         Statement stmt = null;
         ResultSet rs = null;
         try {
+            // Kör frågan
             stmt = dbConnection.getConnection().createStatement();
             rs = stmt.executeQuery(sql);
             while (rs.next()) {
-                // Create Book object using correct constructor
                 int bookID = rs.getInt("bookID");
                 String ISBN = rs.getString("ISBN");
                 String title = rs.getString("title");
                 Date publishedDate = rs.getDate("publishedDate");
-                
-                Book book = new Book(bookID, ISBN, title, publishedDate);
 
-                // Set average rating and number of ratings
+                //skapa bok
+                Book book = new Book(bookID, ISBN, title, publishedDate);
+                // sätt betyg
                 double avgRating = rs.getDouble("averageRating");
                 if (!rs.wasNull()) {
                     book.setAverageRating(avgRating);
@@ -60,7 +65,6 @@ public class BooksDb implements BooksDbInterface {
                 int numRatings = rs.getInt("numRatings");
                 book.setNumRatings(numRatings);
 
-                // Add authors
                 String authors = rs.getString("authors");
                 if (authors != null && !authors.isEmpty()) {
                     for (String name : authors.split(", ")) {
@@ -68,7 +72,6 @@ public class BooksDb implements BooksDbInterface {
                     }
                 }
 
-                // Add genres
                 String genres = rs.getString("genres");
                 if (genres != null && !genres.isEmpty()) {
                     for (String genreName : genres.split(", ")) {
@@ -82,12 +85,12 @@ public class BooksDb implements BooksDbInterface {
         } catch (SQLException e) {
             throw new BooksDbException("Error in fetching book table", e);
         } finally {
+            // Stäng resurser
             try {
                 if (rs != null) rs.close();
             } catch (SQLException e) {
                 System.err.println("Error closing ResultSet: " + e.getMessage());
             }
-
             try {
                 if (stmt != null) stmt.close();
             } catch (SQLException e) {
@@ -96,16 +99,8 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
-
     @Override
-    public boolean disconnect() throws BooksDbException {
-        return dbConnection.disconnect();
-    }
-
-    @Override
-    public List<Book> searchBooksByTitle(String searchTitle)
-            throws BooksDbException {
-
+    public List<Book> searchBooksByTitle(String searchTitle) throws BooksDbException {
         List<Book> result = new ArrayList<>();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -142,6 +137,7 @@ public class BooksDb implements BooksDbInterface {
             }
         }
     }
+
     @Override
     public List<Book> searchBooksByISBN(String searchISBN)
             throws BooksDbException {
@@ -283,7 +279,6 @@ public class BooksDb implements BooksDbInterface {
             con = dbConnection.getConnection();
             con.setAutoCommit(false);
 
-            // Insert book into T_Book table
             String bookSql = "INSERT INTO T_Book (ISBN, title, publishedDate) VALUES (?, ?, ?)";
             pstmtBook = con.prepareStatement(bookSql, Statement.RETURN_GENERATED_KEYS);
             pstmtBook.setString(1, book.getISBN());
@@ -295,13 +290,11 @@ public class BooksDb implements BooksDbInterface {
                 throw new SQLException("Inserting book failed, no rows affected.");
             }
 
-            // Get generated bookID
             ResultSet bookKeys = pstmtBook.getGeneratedKeys();
             bookKeys.next();
             int bookID = bookKeys.getInt(1);
             book.setBookID(bookID);
 
-            // Insert authors and create book-author relationships
             if (book.getAuthors() != null && !book.getAuthors().isEmpty()) {
                 String authorCheckSql = "SELECT authorID FROM T_Author WHERE name = ?";
                 String authorSql = "INSERT INTO T_Author (name, birthDate) VALUES (?, ?)";
@@ -310,16 +303,13 @@ public class BooksDb implements BooksDbInterface {
                 pstmtAuthor = con.prepareStatement(authorCheckSql);
                 
                 for (Author author : book.getAuthors()) {
-                    // Check if author already exists
                     pstmtAuthor.setString(1, author.getName());
                     ResultSet authorCheck = pstmtAuthor.executeQuery();
                     
                     int authorID;
                     if (authorCheck.next()) {
-                        // Author exists, use existing ID
                         authorID = authorCheck.getInt("authorID");
                     } else {
-                        // Insert new author
                         PreparedStatement pstmtNewAuthor = con.prepareStatement(authorSql, Statement.RETURN_GENERATED_KEYS);
                         pstmtNewAuthor.setString(1, author.getName());
                         pstmtNewAuthor.setDate(2, author.getBirthDate());
@@ -331,8 +321,7 @@ public class BooksDb implements BooksDbInterface {
                         author.setAuthorID(authorID);
                         pstmtNewAuthor.close();
                     }
-                    
-                    // Create book-author relationship
+
                     pstmtBookAuthor = con.prepareStatement(bookAuthorSql);
                     pstmtBookAuthor.setInt(1, bookID);
                     pstmtBookAuthor.setInt(2, authorID);
@@ -341,7 +330,6 @@ public class BooksDb implements BooksDbInterface {
                 }
             }
 
-            // Insert genres and create book-genre relationships
             if (book.getGenres() != null && !book.getGenres().isEmpty()) {
                 String genreCheckSql = "SELECT genreID FROM T_Genre WHERE genreName = ?";
                 String genreSql = "INSERT INTO T_Genre (genreName) VALUES (?)";
@@ -350,16 +338,16 @@ public class BooksDb implements BooksDbInterface {
                 pstmtGenreCheck = con.prepareStatement(genreCheckSql);
                 
                 for (Genre genre : book.getGenres()) {
-                    // Check if genre already exists
+
                     pstmtGenreCheck.setString(1, genre.getGenreName());
                     ResultSet genreCheck = pstmtGenreCheck.executeQuery();
                     
                     int genreID;
                     if (genreCheck.next()) {
-                        // Genre exists, use existing ID
+
                         genreID = genreCheck.getInt("genreID");
                     } else {
-                        // Insert new genre
+
                         pstmtGenre = con.prepareStatement(genreSql, Statement.RETURN_GENERATED_KEYS);
                         pstmtGenre.setString(1, genre.getGenreName());
                         pstmtGenre.executeUpdate();
@@ -370,8 +358,7 @@ public class BooksDb implements BooksDbInterface {
                         genre.setGenreID(genreID);
                         pstmtGenre.close();
                     }
-                    
-                    // Create book-genre relationship
+
                     pstmtBookGenre = con.prepareStatement(bookGenreSql);
                     pstmtBookGenre.setInt(1, bookID);
                     pstmtBookGenre.setInt(2, genreID);
@@ -411,7 +398,7 @@ public class BooksDb implements BooksDbInterface {
 
     @Override
     public void deleteBook(Book book) throws BooksDbException {
-        // Note: CASCADE DELETE will automatically remove from T_Book_Author, T_Book_Genre, and T_Rating
+        //cascade ta bort resten automatik
         String bookSql = "DELETE FROM T_Book WHERE bookID = ?";
         String authorCheckSql = "SELECT COUNT(*) FROM T_Book_Author WHERE authorID = ?";
         String authorSql = "DELETE FROM T_Author WHERE authorID = ?";
@@ -425,7 +412,7 @@ public class BooksDb implements BooksDbInterface {
             con = dbConnection.getConnection();
             con.setAutoCommit(false);
 
-            // Delete the book (CASCADE will handle junction tables)
+
             pstmtBook = con.prepareStatement(bookSql);
             pstmtBook.setInt(1, book.getBookID());
             int deletedRows = pstmtBook.executeUpdate();
@@ -434,17 +421,15 @@ public class BooksDb implements BooksDbInterface {
                 throw new SQLException("No book found with bookID: " + book.getBookID());
             }
 
-            // Check and delete authors that are no longer referenced by any books
             if (book.getAuthors() != null) {
                 pstmtAuthorCheck = con.prepareStatement(authorCheckSql);
                 pstmtAuthor = con.prepareStatement(authorSql);
                 
                 for (Author author : book.getAuthors()) {
-                    if (author.getAuthorID() > 0) { // Only check if author has an ID
+                    if (author.getAuthorID() > 0) {
                         pstmtAuthorCheck.setInt(1, author.getAuthorID());
                 try (ResultSet rs = pstmtAuthorCheck.executeQuery()) {
                             if (rs.next() && rs.getInt(1) == 0) {
-                                // No other books reference this author, safe to delete
                                 pstmtAuthor.setInt(1, author.getAuthorID());
                         pstmtAuthor.executeUpdate();
                             }
@@ -477,8 +462,6 @@ public class BooksDb implements BooksDbInterface {
 
     @Override
     public void updateBook(Book book) throws BooksDbException {
-        // Note: This method currently updates book properties (title, ISBN, publishedDate)
-        // For updating ratings, use addRating() method instead
         PreparedStatement pstmtUpdate = null;
         Connection con = null;
         try{
@@ -520,9 +503,9 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
+
     /**
-     * Helper method to build a Book object from a ResultSet row.
-     * Assumes ResultSet has columns: bookID, ISBN, title, publishedDate, authors, genres, averageRating, numRatings
+     * Bygger ett Book-objekt från ResultSet.
      */
     private Book buildBookFromResultSet(ResultSet rs) throws SQLException {
         int bookID = rs.getInt("bookID");
@@ -532,7 +515,6 @@ public class BooksDb implements BooksDbInterface {
         
         Book book = new Book(bookID, ISBN, title, publishedDate);
 
-        // Set average rating and number of ratings
         double avgRating = rs.getDouble("averageRating");
         if (!rs.wasNull()) {
             book.setAverageRating(avgRating);
@@ -540,7 +522,6 @@ public class BooksDb implements BooksDbInterface {
         int numRatings = rs.getInt("numRatings");
         book.setNumRatings(numRatings);
 
-        // Add authors
         String authors = rs.getString("authors");
         if (authors != null && !authors.isEmpty()) {
             for (String name : authors.split(", ")) {
@@ -548,7 +529,6 @@ public class BooksDb implements BooksDbInterface {
             }
         }
 
-        // Add genres
         String genres = rs.getString("genres");
         if (genres != null && !genres.isEmpty()) {
             for (String genreName : genres.split(", ")) {
@@ -559,18 +539,15 @@ public class BooksDb implements BooksDbInterface {
         return book;
     }
 
-    // ========== Methods defined in interface but not yet fully implemented ==========
 
     @Override
     public List<Book> searchBooksByRating(double minRating) throws BooksDbException {
-        // TODO: Implement search by rating functionality
-        // This requires joining with T_Rating table and calculating average ratings
         throw new BooksDbException("searchBooksByRating not yet implemented");
     }
 
     @Override
     public boolean addRating(int bookID, int ratingValue) throws BooksDbException {
-        // Validate rating value (1-10 as per database constraint)
+
         if (ratingValue < 1 || ratingValue > 10) {
             throw new BooksDbException("Rating value must be between 1 and 10");
         }

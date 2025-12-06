@@ -1,7 +1,6 @@
 package se.kth.awad.bookdatabase.view;
 
 import javafx.event.ActionEvent;
-import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -9,7 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.util.Callback;
 import se.kth.awad.bookdatabase.model.*;
-
 import java.sql.Date;
 
 public class AddBookDialog extends Dialog<Book> {
@@ -63,7 +61,6 @@ public class AddBookDialog extends Dialog<Book> {
                 Book result = null;
                 if (b == buttonTypeOk) {
                     if (isValidData()) {
-                        // Create book with correct constructor: Book(String ISBN, String title, Date publishedDate)
                         Date publishedDate = publishedField.getValue() != null 
                             ? Date.valueOf(publishedField.getValue()) 
                             : null;
@@ -72,8 +69,6 @@ public class AddBookDialog extends Dialog<Book> {
                                 titleField.getText().trim(),
                                 publishedDate
                         );
-
-                        // Add author(s) - support comma-separated author names
                         String authorName = authorField.getText().trim();
                         if (!authorName.isEmpty()) {
                             Date authorBirthDate = birthDayField.getValue() != null 
@@ -85,7 +80,6 @@ public class AddBookDialog extends Dialog<Book> {
                             result.addAuthor(author);
                         }
 
-                        // Add genre(s) - support comma-separated genre names
                         String genresText = genreField.getText().trim();
                         if (!genresText.isEmpty()) {
                             String[] genreNames = genresText.split(",");
@@ -103,7 +97,6 @@ public class AddBookDialog extends Dialog<Book> {
             }
         });
 
-        // Add event filter to keep dialog active if validation fails
         Button okButton = (Button) this.getDialogPane().lookupButton(buttonTypeOk);
         okButton.addEventFilter(ActionEvent.ACTION, new EventHandler<ActionEvent>() {
             @Override
@@ -117,7 +110,6 @@ public class AddBookDialog extends Dialog<Book> {
     }
 
     private boolean isValidData() {
-        // Check required fields
         if (titleField.getText().trim().isEmpty()) {
             return false;
         }
@@ -130,8 +122,7 @@ public class AddBookDialog extends Dialog<Book> {
         if (authorField.getText().trim().isEmpty()) {
             return false;
         }
-        
-        // Basic ISBN validation (should be 10 or 13 digits, but we'll just check it's not empty)
+
         String isbn = isbnField.getText().trim();
         if (isbn.isEmpty() || isbn.length() < 10) {
             return false;

@@ -3,7 +3,6 @@ package se.kth.awad.bookdatabase.model;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 /**
  * Representerar en bok från T_Book tabellen i LibraryDB.
@@ -70,7 +69,6 @@ public class Book {
         return genres;
     }
 
-
     public double getAverageRating(){
         return averageRating;
     }
@@ -112,7 +110,6 @@ public class Book {
     }
 
     // Metoder
-
     public void addAuthor(Author author){
         if(!this.authors.contains(author)){ //inga dubbletter
             this.authors.add(author);
@@ -125,6 +122,7 @@ public class Book {
         }
     }
 
+    // Används för att visa författare i TableView.
     public String getAuthorsAsString() {
         if (authors.isEmpty()) {
             return "Unknown";
@@ -138,7 +136,6 @@ public class Book {
         }
         return sb.toString();
     }
-
 
     public String getGenresAsString() {
         if (genres.isEmpty()) {
@@ -154,7 +151,6 @@ public class Book {
         return sb.toString();
     }
 
-
     public String getPublishedYear(){
         if(publishedDate == null){
             return "N/A";
@@ -163,7 +159,6 @@ public class Book {
     }
 
     // Object metoder
-
     public boolean equals(Object obj){
         if(this == obj){
             return true;
@@ -178,5 +173,4 @@ public class Book {
     public int hashCode(){
         return Objects.hash(bookID);
     }
-
 }

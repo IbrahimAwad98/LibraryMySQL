@@ -3,44 +3,28 @@ package se.kth.awad.bookdatabase;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
 import se.kth.awad.bookdatabase.Controller.BookDBController;
 import se.kth.awad.bookdatabase.model.BooksDb;
 import se.kth.awad.bookdatabase.view.BooksPane;
+import javafx.scene.image.Image;
 
-/**
- * Application start up.
- * Follows MVC pattern: Creates Model, View, and Controller independently,
- * then wires them together via dependency injection.
- *
- * @author anderslm@kth.se
- */
-public class Main extends Application {
+public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
 
-        // === MVC SETUP - Dependency Injection Pattern ===
-
-        // 1. Create Model (Data layer - handles database operations)
         BooksDb booksDb = new BooksDb();
-
-        // 2. Create View (UI layer - displays data)
         BooksPane booksPane = new BooksPane();
-
-        // 3. Create Controller (Business logic - mediates between Model and View)
         BookDBController controller = new BookDBController(booksDb, booksPane);
 
-        // 4. Inject Controller into View and initialize UI
         booksPane.setController(controller);
 
-        // === JavaFX SETUP ===
-
-        // 5. Create and configure the scene
         Scene scene = new Scene(booksPane, 800, 600);
-        primaryStage.setTitle("Books Database Client");
+        primaryStage.setTitle("Books Database Client v1.0");
 
-        // 6. Setup exit handler to properly disconnect from database
+        Image logo = new Image(getClass().getResourceAsStream("/se/kth/awad/bookdatabase/logo.png"));
+        primaryStage.getIcons().add(logo);
+
         primaryStage.setOnCloseRequest(event -> {
             try {
                 booksDb.disconnect();
@@ -49,8 +33,6 @@ public class Main extends Application {
                 System.err.println("Error during shutdown: " + e.getMessage());
             }
         });
-
-        // 7. Show the application
         primaryStage.setScene(scene);
         primaryStage.show();
     }
