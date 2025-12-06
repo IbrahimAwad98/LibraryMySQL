@@ -543,6 +543,7 @@ public class BooksDb implements BooksDbInterface {
     @Override
     public List<Book> searchBooksByRating(double minRating) throws BooksDbException {
         throw new BooksDbException("searchBooksByRating not yet implemented");
+
     }
 
     @Override

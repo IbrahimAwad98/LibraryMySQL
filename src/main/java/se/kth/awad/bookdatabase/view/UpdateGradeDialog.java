@@ -37,7 +37,7 @@ public class UpdateGradeDialog extends Dialog<UpdateGradeDialog.GradeUpdate> {
     private void buildUpdateGradeDialog(){
         this.setTitle("Update a book grade");
         this.setResizable(false);
-        gradeField.getItems().addAll(1, 2, 3, 4, 5);
+        gradeField.getItems().addAll(1, 2, 3, 4, 5,6,7,8,9,10);
 
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);

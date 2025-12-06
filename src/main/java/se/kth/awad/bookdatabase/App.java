@@ -19,7 +19,7 @@ public class App extends Application {
 
         booksPane.setController(controller);
 
-        Scene scene = new Scene(booksPane, 800, 600);
+        Scene scene = new Scene(booksPane, 1280, 720);
         primaryStage.setTitle("Books Database Client v1.0");
 
         Image logo = new Image(getClass().getResourceAsStream("/se/kth/awad/bookdatabase/logo.png"));

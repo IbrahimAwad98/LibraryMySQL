@@ -78,9 +78,14 @@ public class BooksPane extends VBox {
 
 
         booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol, genreCol, ratingCol,nameCol);
-        titleCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.5));
-        nameCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.3));
-
+        titleCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.25));
+        isbnCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.20));
+        publishedCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
+        genreCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
+        ratingCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.10));
+        nameCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
+        isbnCol.setMinWidth(140);
+        ratingCol.setMinWidth(70);
 
         titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
         isbnCol.setCellValueFactory(new PropertyValueFactory<>("ISBN"));
@@ -89,7 +94,34 @@ public class BooksPane extends VBox {
         ratingCol.setCellValueFactory(new PropertyValueFactory<>("averageRating"));
         nameCol.setCellValueFactory(new PropertyValueFactory<>("authorsAsString"));
 
+        // rating med en decimal
+        ratingCol.setCellFactory(column -> new TableCell<Book, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%.1f", item));
+                }
+            }
+        });
+
         booksTable.setItems(booksInTable);
+
+        //välja en rad i tabellen och få upp detaljerad
+        TableView.TableViewSelectionModel<Book> selectionModel = booksTable.getSelectionModel();
+        selectionModel.setSelectionMode(SelectionMode.SINGLE);
+        selectionModel.selectedItemProperty().addListener((obs, oldBook, newBook) -> {
+            if (newBook != null) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Authors");
+                alert.setHeaderText("Authors for: " + newBook.getTitle());
+                alert.setContentText(newBook.getAuthorsAsString());
+                alert.showAndWait();
+            }
+        });
+
     }
 
     private void initSearchView(BookDBController controller) {
@@ -123,7 +155,7 @@ public class BooksPane extends VBox {
     private void initMenus(BookDBController controller) {
 
         Menu fileMenu = new Menu("File");
-        MenuItem connectItem = new MenuItem("Connect to Db");
+        MenuItem connectItem = new MenuItem("Connect");
         MenuItem disconnectItem = new MenuItem("Disconnect");
         MenuItem exitItem = new MenuItem("Exit");
         fileMenu.getItems().addAll(connectItem, disconnectItem, exitItem);
@@ -167,6 +199,8 @@ public class BooksPane extends VBox {
         });
         helpMenu.getItems().add(aboutItem);
         menuBar.getMenus().add(helpMenu);
+
+
 
     }
 }
