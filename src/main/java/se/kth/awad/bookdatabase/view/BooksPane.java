@@ -105,11 +105,11 @@ public class BooksPane extends VBox {
         TableColumn<Book, String> isbnCol = new TableColumn<>("ISBN");
         TableColumn<Book, Date> publishedCol = new TableColumn<>("Published");
         TableColumn<Book, String> genreCol = new TableColumn<>("Genre");
-        TableColumn<Book, Integer> gradeCol = new TableColumn<>("Grade");
+        TableColumn<Book, Double> ratingCol = new TableColumn<>("Rating");
         TableColumn<Book, Integer> nameCol = new TableColumn<>("Name");
 
 
-        booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol, genreCol, gradeCol,nameCol);
+        booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol, genreCol, ratingCol,nameCol);
         // give title column some extra space
         titleCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.5));
         nameCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.3));
@@ -117,12 +117,13 @@ public class BooksPane extends VBox {
 
         // define how to fill data for each cell,
         // get values from Book properties
+        // NYTT (RÄTT):
         titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
-        isbnCol.setCellValueFactory(new PropertyValueFactory<>("isbn"));
-        publishedCol.setCellValueFactory(new PropertyValueFactory<>("published"));
-        genreCol.setCellValueFactory(new PropertyValueFactory<>("genre"));
-        gradeCol.setCellValueFactory(new PropertyValueFactory<>("grade"));
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("authors"));
+        isbnCol.setCellValueFactory(new PropertyValueFactory<>("ISBN"));
+        publishedCol.setCellValueFactory(new PropertyValueFactory<>("publishedDate"));
+        genreCol.setCellValueFactory(new PropertyValueFactory<>("genresAsString"));
+        ratingCol.setCellValueFactory(new PropertyValueFactory<>("averageRating"));
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("authorsAsString"));
 
         booksTable.setItems(booksInTable);
     }
@@ -140,8 +141,8 @@ public class BooksPane extends VBox {
             @Override
             public void handle(ActionEvent event) {
                 SearchMode mode = searchModeBox.getValue();
-                if(mode == SearchMode.Grade) {
-                    int searchFor = Integer.parseInt(searchField.getText().trim());
+                if(mode == SearchMode.Rating) {
+                    double searchFor = Double.parseDouble(searchField.getText().trim());
                     controller.onSearchSelected(String.valueOf(searchFor), mode);
                     searchField.setPromptText("Search for...");
 

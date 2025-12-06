@@ -16,6 +16,12 @@ public class DatabaseConnection {
     private String currentDatabase;
 
     // Database configuration
+    // TODO: Update these credentials to match your MySQL setup
+    // If using default MySQL installation, try:
+    // USERNAME = "root"
+    // PASSWORD = "your_root_password"
+    // Or create a user: CREATE USER 'Admin'@'localhost' IDENTIFIED BY 'Admin2025';
+    // Then: GRANT ALL PRIVILEGES ON LibraryDB.* TO 'Admin'@'localhost';
     private static final String SERVER_URL = "jdbc:mysql://localhost:3306/";
     private static final String USERNAME = "Admin";
     private static final String PASSWORD = "Admin2025";

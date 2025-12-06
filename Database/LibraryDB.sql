@@ -1,100 +1,115 @@
-CREATE DATABASE IF NOT EXISTS LibraryDB;
+-- ta bort befintliga användare och börja om
+DROP DATABASE IF EXISTS LibraryDB;
+DROP USER IF EXISTS 'Admin'@'localhost';
+
+-- skapa ny användare och ge alla behörighet 
+CREATE USER 'Admin'@'localhost' IDENTIFIED BY 'Admin2025';
+GRANT ALL PRIVILEGES ON *.* TO 'Admin'@'localhost';
+FLUSH PRIVILEGES;
+
+-- skapa databas
+CREATE DATABASE LibraryDB;
 USE LibraryDB;
 
+-- Tabeller
 CREATE TABLE T_Author(
-authorID INT AUTO_INCREMENT,
-name VARCHAR(100) NOT NULL,
-birthDate DATE,
-PRIMARY KEY (authorID),
-INDEX index_author_name (name) -- hantera sökning
+    authorID INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    birthDate DATE
 );
 
 CREATE TABLE T_Genre(
-genreID INT AUTO_INCREMENT,
-genreName VARCHAR(50) UNIQUE NOT NULL,
-PRIMARY KEY (genreID),
-INDEX idexx_genre_name (genreName) -- hantera sökning
+    genreID INT AUTO_INCREMENT PRIMARY KEY,
+    genreName VARCHAR(50) UNIQUE NOT NULL
 );
 
 CREATE TABLE T_Book(
-bookID INT AUTO_INCREMENT,
-ISBN VARCHAR(13) UNIQUE NOT NULL,
-title VARCHAR(200) NOT NULL,
-publishedDate DATE,
-PRIMARY KEY (bookID),
--- hantera sökning
-INDEX idx_book_title (title), 
-INDEX idx_book_isbn (ISBN)
+    bookID INT AUTO_INCREMENT PRIMARY KEY,
+    ISBN VARCHAR(13) UNIQUE NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    publishedDate DATE
 );
-
 
 CREATE TABLE T_Rating(
-ratingID INT AUTO_INCREMENT,
-bookID INT NOT NULL,
-ratingValue INT NOT NULL CHECK (ratingValue BETWEEN 1 AND 10),
-ratingDate DATE NOT NULL,
-PRIMARY KEY (ratingID),
-FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE,
-INDEX idx_rating_book (bookID) -- hantera sökning
+    ratingID INT AUTO_INCREMENT PRIMARY KEY,
+    bookID INT NOT NULL,
+    ratingValue INT NOT NULL CHECK (ratingValue BETWEEN 1 AND 10),
+    ratingDate DATE NOT NULL,
+    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE
 );
 
-
--- skapa koppling
 CREATE TABLE T_Book_Author(
     bookID INT NOT NULL,
     authorID INT NOT NULL,
-    PRIMARY KEY (bookID, authorID),  -- Composit primärnyckel
-    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) 
-        ON DELETE CASCADE,
-    FOREIGN KEY (authorID) REFERENCES T_Author(authorID) 
-        ON DELETE CASCADE
+    PRIMARY KEY (bookID, authorID),
+    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE,
+    FOREIGN KEY (authorID) REFERENCES T_Author(authorID) ON DELETE CASCADE
 );
-
 
 CREATE TABLE T_Book_Genre(
     bookID INT NOT NULL,
     genreID INT NOT NULL,
-    PRIMARY KEY (bookID, genreID),  -- Composit primärnyckel
-    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) 
-        ON DELETE CASCADE,
-    FOREIGN KEY (genreID) REFERENCES T_Genre(genreID) 
-        ON DELETE CASCADE
+    PRIMARY KEY (bookID, genreID),
+    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE,
+    FOREIGN KEY (genreID) REFERENCES T_Genre(genreID) ON DELETE CASCADE
 );
 
-
--- fylla tabellerna!
+-- fyll i data
 INSERT INTO T_Author (name, birthDate) VALUES
-('J.K. Rowling', '1965-07-31'),
-('Terry Pratchett', '1948-04-28'),
-('Neil Gaiman', '1960-11-10');
+('Miguel de Cervantes', '1547-09-29'),
+('Charles Dickens', '1812-02-07'),
+('J.R.R. Tolkien', '1892-01-03'),
+('Antoine de Saint-Exupéry', '1900-06-29'),
+('J.K. Rowling', '1965-07-31');
 
 INSERT INTO T_Genre (genreName) VALUES
-('Fantasy'),
+('Fantasy'),          
+('Classic'),
+('Adventure'),
+('Historical Fiction'),
+('Philosophical'),
 ('Young Adult'),
-('Horror');
+('Drama');
+
 
 INSERT INTO T_Book (ISBN, title, publishedDate) VALUES
-('9780439708180', 'Harry Potter and the Sorcerer''s Stone', '1997-06-26'),
-('9780552152976', 'Good Omens', '1990-05-01');
-
-
-INSERT INTO T_Book_Author (bookID, authorID) VALUES
-(1, 1);  -- Harry Potter by J.K. Rowling
-
+('9780060934347', 'Don Quixote', '1605-01-16'),
+('9780486406510', 'A Tale of Two Cities', '1859-04-30'),
+('9780618640157', 'The Lord of the Rings', '1954-07-29'),
+('9780156012195', 'The Little Prince', '1943-04-06'),
+('9780439708180', 'Harry Potter and the Philosopher''s Stone', '1997-06-26');
 
 INSERT INTO T_Book_Author (bookID, authorID) VALUES
-(2, 2),  -- Good Omens by Terry Pratchett
-(2, 3);  -- Good Omens by Neil Gaiman
+(1, 1),  
+(2, 2),  
+(3, 3),  
+(4, 4),  
+(5, 5);  
 
 INSERT INTO T_Book_Genre (bookID, genreID) VALUES
-(1, 1),  -- Harry Potter: Fantasy
-(1, 2);  -- Harry Potter: Young Adult
+(1, 1), (1, 2),          
+(2, 1), (2, 4), (2, 7),  
+(3, 3), (3, 2), (3, 1),  
+(4, 5), (4, 1),          
+(5, 3), (5, 6), (5, 2); 
 
-INSERT INTO T_Book_Genre (bookID, genreID) VALUES
-(2, 1),  -- Good Omens: Fantasy
-(2, 3);  -- Good Omens: Horror
 
 INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES
-(1, 10, '2024-01-15'),
-(1, 9, '2024-01-20'),
-(2, 10, '2024-01-25');
+(1, 8, '2024-01-15'), (1, 8, '2024-01-20'), (1, 7, '2024-01-25'),
+(2, 8, '2024-02-01'), (2, 8, '2024-02-05'), (2, 7, '2024-02-10'),
+(3, 10, '2024-03-01'), (3, 9, '2024-03-05'), (3, 10, '2024-03-10'),
+(4, 9, '2024-04-01'), (4, 9, '2024-04-05'), (4, 8, '2024-04-10'),
+(5, 10, '2024-05-01'), (5, 9, '2024-05-05'), (5, 10, '2024-05-10');
+
+-- test för visa tabel
+/*
+SELECT 
+    b.title,
+    b.ISBN,
+    b.publishedDate,
+    GROUP_CONCAT(DISTINCT g.genreName SEPARATOR ', ') as genres
+FROM T_Book b
+LEFT JOIN T_Book_Genre bg ON b.bookID = bg.bookID
+LEFT JOIN T_Genre g ON bg.genreID = g.genreID
+GROUP BY b.bookID, b.title, b.ISBN, b.publishedDate;
+*/ 
