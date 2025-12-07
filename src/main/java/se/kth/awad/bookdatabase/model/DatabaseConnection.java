@@ -17,8 +17,8 @@ public class DatabaseConnection {
 
     // Database configuration MySQL-installation
     private static final String SERVER_URL = "jdbc:mysql://localhost:3306/";
-    private static final String USERNAME = "Admin";
-    private static final String PASSWORD = "Admin2025";
+    private static final String USERNAME = "library_client";
+    private static final String PASSWORD = "LibClient2025!";
     private static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
 
     /**

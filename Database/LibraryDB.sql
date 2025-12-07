@@ -1,11 +1,13 @@
 -- ta bort befintliga användare och börja om
 DROP DATABASE IF EXISTS LibraryDB;
 DROP USER IF EXISTS 'Admin'@'localhost';
+DROP USER IF EXISTS 'library_client'@'localhost';
 
--- skapa ny användare och ge alla behörighet 
+
+-- skapa admin (hela behörighet)
 CREATE USER 'Admin'@'localhost' IDENTIFIED BY 'Admin2025';
 GRANT ALL PRIVILEGES ON *.* TO 'Admin'@'localhost';
-FLUSH PRIVILEGES;
+
 
 -- skapa databas
 CREATE DATABASE LibraryDB;
@@ -113,3 +115,27 @@ LEFT JOIN T_Book_Genre bg ON b.bookID = bg.bookID
 LEFT JOIN T_Genre g ON bg.genreID = g.genreID
 GROUP BY b.bookID, b.title, b.ISBN, b.publishedDate;
 */ 
+
+
+-- skapa användare med begränsat behörighet. 
+CREATE USER 'library_client'@'localhost' 
+IDENTIFIED BY 'LibClient2025!';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Book 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Author 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Genre 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Book_Author 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Book_Genre 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Rating 
+TO 'library_client'@'localhost';
+
