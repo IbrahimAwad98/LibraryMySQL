@@ -1,8 +1,11 @@
 📚 Biblioteksdatabas Management System
 
 Kurs: HI1030 Databasteknik, KTH
+
 Labb: Programmeringslaboration 1
+
 Termin: HT 2025
+
 Grupp: Grupp 5 - Ibrahim & Ahmed
 
 En JavaFX-klientapplikation som ansluter till en MySQL-databas för att hantera ett förenklat bibliotekssystem. Applikationen låter användare söka efter böcker, visa författarinformation, bläddra bland genrer och hantera bokbetyg.
