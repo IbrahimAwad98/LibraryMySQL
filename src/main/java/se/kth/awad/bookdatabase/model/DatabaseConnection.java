@@ -77,10 +77,22 @@ public class DatabaseConnection {
 
         } catch (SQLException e) {
             // Fångar alla SQLException (både från close() och getConnection())
-            throw new BooksDbException(
-                    "Failed to connect to database: " + database + " at " + SERVER_URL,
-                    e
+            String errorMsg = String.format(
+                    "Failed to connect to database '%s' at %s%n" +
+                    "Error: %s%n" +
+                    "SQL State: %s%n" +
+                    "Error Code: %d%n" +
+                    "%nTroubleshooting:%n" +
+                    "1. Verify the database name is correct (case-sensitive on some systems)%n" +
+                    "2. Check if user '%s' has GRANT privileges on database '%s'%n" +
+                    "3. Verify MySQL server is running%n" +
+                    "4. Check user credentials",
+                    database, SERVER_URL, e.getMessage(),
+                    e.getSQLState(), e.getErrorCode(), USERNAME, database
             );
+            System.err.println("[DatabaseConnection] Connection failed:");
+            System.err.println(errorMsg);
+            throw new BooksDbException(errorMsg, e);
         }
     }
 

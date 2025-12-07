@@ -33,8 +33,8 @@ public class BooksDb implements BooksDbInterface {
         String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                 "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                 "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                "AVG(R.ratingValue) AS averageRating, " +
-                "COUNT(R.ratingID) AS numRatings " +
+                "MAX(R.ratingValue) AS averageRating, " +
+                "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
                 "FROM T_Book AS B " +
                 "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
                 "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
@@ -57,10 +57,10 @@ public class BooksDb implements BooksDbInterface {
 
                 //skapa bok
                 Book book = new Book(bookID, ISBN, title, publishedDate);
-                // sätt betyg
-                int avgRating = rs.getInt("averageRating");
+                // sätt betyg - hämta det unika betyget (inte genomsnitt)
+                int rating = rs.getInt("averageRating");
                 if (!rs.wasNull()) {
-                    book.setAverageRating(avgRating);
+                    book.setAverageRating(rating);
                 }
                 int numRatings = rs.getInt("numRatings");
                 book.setNumRatings(numRatings);
@@ -108,8 +108,8 @@ public class BooksDb implements BooksDbInterface {
             String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                     "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                     "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "AVG(R.ratingValue) AS averageRating, " +
-                    "COUNT(R.ratingID) AS numRatings " +
+                    "MAX(R.ratingValue) AS averageRating, " +
+                    "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
                     "FROM T_Book AS B " +
                     "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
                     "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
@@ -149,8 +149,8 @@ public class BooksDb implements BooksDbInterface {
             String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                     "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                     "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "AVG(R.ratingValue) AS averageRating, " +
-                    "COUNT(R.ratingID) AS numRatings " +
+                    "MAX(R.ratingValue) AS averageRating, " +
+                    "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
                     "FROM T_Book AS B " +
                     "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
                     "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
@@ -190,8 +190,8 @@ public class BooksDb implements BooksDbInterface {
             String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                     "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                     "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "AVG(R.ratingValue) AS averageRating, " +
-                    "COUNT(R.ratingID) AS numRatings " +
+                    "MAX(R.ratingValue) AS averageRating, " +
+                    "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
                     "FROM T_Author AS A " +
                     "JOIN T_Book_Author AS BA ON BA.authorID = A.authorID " +
                     "JOIN T_Book AS B ON B.bookID = BA.bookID " +
@@ -211,7 +211,6 @@ public class BooksDb implements BooksDbInterface {
             e.printStackTrace();
             throw new BooksDbException("Error searching books by author", e);
         } finally {
-            // Close resources in a finally block
             try {
                 if (rs != null) {
                     rs.close();
@@ -220,7 +219,7 @@ public class BooksDb implements BooksDbInterface {
                     pstmt.close();
                 }
             } catch (SQLException e) {
-                e.printStackTrace(); // Handle or log the exception
+                e.printStackTrace();
             }
         }
     }
@@ -236,8 +235,8 @@ public class BooksDb implements BooksDbInterface {
             String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                     "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                     "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "AVG(R.ratingValue) AS averageRating, " +
-                    "COUNT(R.ratingID) AS numRatings " +
+                    "MAX(R.ratingValue) AS averageRating, " +
+                    "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
                     "FROM T_Genre AS G " +
                     "JOIN T_Book_Genre AS BG ON BG.genreID = G.genreID " +
                     "JOIN T_Book AS B ON B.bookID = BG.bookID " +
@@ -300,26 +299,43 @@ public class BooksDb implements BooksDbInterface {
                 String authorSql = "INSERT INTO T_Author (name, birthDate) VALUES (?, ?)";
                 String bookAuthorSql = "INSERT INTO T_Book_Author (bookID, authorID) VALUES (?, ?)";
                 
+                System.out.println("[BooksDb] Processing " + book.getAuthors().size() + " author(s) for book: " + book.getTitle());
+                
                 pstmtAuthor = con.prepareStatement(authorCheckSql);
                 
                 for (Author author : book.getAuthors()) {
+                    System.out.println("[BooksDb] Processing author: " + author.getName());
                     pstmtAuthor.setString(1, author.getName());
-                    ResultSet authorCheck = pstmtAuthor.executeQuery();
-                    
+                    ResultSet authorCheck = null;
                     int authorID;
-                    if (authorCheck.next()) {
-                        authorID = authorCheck.getInt("authorID");
-                    } else {
-                        PreparedStatement pstmtNewAuthor = con.prepareStatement(authorSql, Statement.RETURN_GENERATED_KEYS);
-                        pstmtNewAuthor.setString(1, author.getName());
-                        pstmtNewAuthor.setDate(2, author.getBirthDate());
-                        pstmtNewAuthor.executeUpdate();
+                    
+                    try {
+                        authorCheck = pstmtAuthor.executeQuery();
                         
-                        ResultSet authorKeys = pstmtNewAuthor.getGeneratedKeys();
-                        authorKeys.next();
-                        authorID = authorKeys.getInt(1);
-                        author.setAuthorID(authorID);
-                        pstmtNewAuthor.close();
+                        if (authorCheck.next()) {
+                            authorID = authorCheck.getInt("authorID");
+                        } else {
+                            PreparedStatement pstmtNewAuthor = con.prepareStatement(authorSql, Statement.RETURN_GENERATED_KEYS);
+                            ResultSet authorKeys = null;
+                            try {
+                                pstmtNewAuthor.setString(1, author.getName());
+                                pstmtNewAuthor.setDate(2, author.getBirthDate());
+                                pstmtNewAuthor.executeUpdate();
+                                
+                                authorKeys = pstmtNewAuthor.getGeneratedKeys();
+                                if (authorKeys.next()) {
+                                    authorID = authorKeys.getInt(1);
+                                    author.setAuthorID(authorID);
+                                } else {
+                                    throw new SQLException("Failed to get generated author ID");
+                                }
+                            } finally {
+                                if (authorKeys != null) authorKeys.close();
+                                pstmtNewAuthor.close();
+                            }
+                        }
+                    } finally {
+                        if (authorCheck != null) authorCheck.close();
                     }
 
                     pstmtBookAuthor = con.prepareStatement(bookAuthorSql);
@@ -335,28 +351,42 @@ public class BooksDb implements BooksDbInterface {
                 String genreSql = "INSERT INTO T_Genre (genreName) VALUES (?)";
                 String bookGenreSql = "INSERT INTO T_Book_Genre (bookID, genreID) VALUES (?, ?)";
                 
+                System.out.println("[BooksDb] Processing " + book.getGenres().size() + " genre(s) for book: " + book.getTitle());
+                
                 pstmtGenreCheck = con.prepareStatement(genreCheckSql);
                 
                 for (Genre genre : book.getGenres()) {
-
+                    System.out.println("[BooksDb] Processing genre: " + genre.getGenreName());
                     pstmtGenreCheck.setString(1, genre.getGenreName());
-                    ResultSet genreCheck = pstmtGenreCheck.executeQuery();
-                    
+                    ResultSet genreCheck = null;
                     int genreID;
-                    if (genreCheck.next()) {
-
-                        genreID = genreCheck.getInt("genreID");
-                    } else {
-
-                        pstmtGenre = con.prepareStatement(genreSql, Statement.RETURN_GENERATED_KEYS);
-                        pstmtGenre.setString(1, genre.getGenreName());
-                        pstmtGenre.executeUpdate();
+                    
+                    try {
+                        genreCheck = pstmtGenreCheck.executeQuery();
                         
-                        ResultSet genreKeys = pstmtGenre.getGeneratedKeys();
-                        genreKeys.next();
-                        genreID = genreKeys.getInt(1);
-                        genre.setGenreID(genreID);
-                        pstmtGenre.close();
+                        if (genreCheck.next()) {
+                            genreID = genreCheck.getInt("genreID");
+                        } else {
+                            pstmtGenre = con.prepareStatement(genreSql, Statement.RETURN_GENERATED_KEYS);
+                            ResultSet genreKeys = null;
+                            try {
+                                pstmtGenre.setString(1, genre.getGenreName());
+                                pstmtGenre.executeUpdate();
+                                
+                                genreKeys = pstmtGenre.getGeneratedKeys();
+                                if (genreKeys.next()) {
+                                    genreID = genreKeys.getInt(1);
+                                    genre.setGenreID(genreID);
+                                } else {
+                                    throw new SQLException("Failed to get generated genre ID");
+                                }
+                            } finally {
+                                if (genreKeys != null) genreKeys.close();
+                                pstmtGenre.close();
+                            }
+                        }
+                    } finally {
+                        if (genreCheck != null) genreCheck.close();
                     }
 
                     pstmtBookGenre = con.prepareStatement(bookGenreSql);
@@ -515,9 +545,10 @@ public class BooksDb implements BooksDbInterface {
         
         Book book = new Book(bookID, ISBN, title, publishedDate);
 
-        int avgRating = rs.getInt("averageRating");
+        // Hämta det unika betyget (inte genomsnitt)
+        int rating = rs.getInt("averageRating");
         if (!rs.wasNull()) {
-            book.setAverageRating(avgRating);
+            book.setAverageRating(rating);
         }
         int numRatings = rs.getInt("numRatings");
         book.setNumRatings(numRatings);
@@ -547,12 +578,12 @@ public class BooksDb implements BooksDbInterface {
         ResultSet rs = null;
 
         try {
-            // SQL-fråga som filtrerar böcker baserat på genomsnittligt betyg
+            // SQL-fråga som filtrerar böcker baserat på betyg (inte genomsnitt)
             String sql = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
                     "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                     "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "AVG(R.ratingValue) AS averageRating, " +
-                    "COUNT(R.ratingID) AS numRatings " +
+                    "MAX(R.ratingValue) AS averageRating, " +
+                    "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
                     "FROM T_Book AS B " +
                     "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
                     "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
@@ -560,7 +591,7 @@ public class BooksDb implements BooksDbInterface {
                     "LEFT JOIN T_Genre AS G ON BG.genreID = G.genreID " +
                     "LEFT JOIN T_Rating AS R ON B.bookID = R.bookID " +
                     "GROUP BY B.bookID, B.ISBN, B.title, B.publishedDate " +
-                    "HAVING AVG(R.ratingValue) = ?;";
+                    "HAVING MAX(R.ratingValue) = ?;";
 
             pstmt = dbConnection.getConnection().prepareStatement(sql);
             pstmt.setInt(1, minRating);
@@ -598,20 +629,29 @@ public class BooksDb implements BooksDbInterface {
             throw new BooksDbException("Rating value must be between 1 and 10");
         }
 
-        PreparedStatement pstmt = null;
+        PreparedStatement pstmtDelete = null;
+        PreparedStatement pstmtInsert = null;
         Connection con = null;
         try {
             con = dbConnection.getConnection();
             con.setAutoCommit(false);
-            String sql = "INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES (?, ?, CURDATE())";
-            pstmt = con.prepareStatement(sql);
-            pstmt.setInt(1, bookID);
-            pstmt.setInt(2, ratingValue);
+            
 
-            int rowsAffected = pstmt.executeUpdate();
+            String deleteSql = "DELETE FROM T_Rating WHERE bookID = ?";
+            pstmtDelete = con.prepareStatement(deleteSql);
+            pstmtDelete.setInt(1, bookID);
+            pstmtDelete.executeUpdate();
+            
+
+            String insertSql = "INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES (?, ?, CURDATE())";
+            pstmtInsert = con.prepareStatement(insertSql);
+            pstmtInsert.setInt(1, bookID);
+            pstmtInsert.setInt(2, ratingValue);
+
+            int rowsAffected = pstmtInsert.executeUpdate();
             if(rowsAffected > 0){
                 con.commit();
-                System.out.println("[BooksDbImpl] ✓ Betyg tillagt");
+                System.out.println("[BooksDbImpl] ✓ Betyg uppdaterat (ersatt tidigare betyg)");
                 return true;
             }else {
                 con.rollback();
@@ -628,9 +668,11 @@ public class BooksDb implements BooksDbInterface {
             throw new BooksDbException("Failed to add rating for book ID " + bookID, e);
         } finally {
             try {
-                con.setAutoCommit(true);
+                if (pstmtDelete != null) pstmtDelete.close();
+                if (pstmtInsert != null) pstmtInsert.close();
+                if (con != null) con.setAutoCommit(true);
             } catch (SQLException e) {
-                System.err.println("[BooksDbImpl] Warning: Failed to reset auto-commit");
+                System.err.println("[BooksDbImpl] Warning: Failed to close resources or reset auto-commit");
             }
         }
     }

@@ -42,11 +42,12 @@ public class AddBookDialog extends Dialog<Book> {
         grid.add(new Label("Genre(s) "), 1, 4);
         grid.add(genreField, 2, 4);
         genreField.setPromptText("Comma-separated (e.g., Fantasy, Young Adult)");
-        grid.add(new Label("Author Name "), 1, 5);
+        grid.add(new Label("Author(s) "), 1, 5);
         grid.add(authorField, 2, 5);
+        authorField.setPromptText("Comma-separated (e.g., J.K. Rowling, Stephen King)");
         grid.add(new Label("Author Birth Date "), 1, 6);
         grid.add(birthDayField, 2, 6);
-        birthDayField.setPromptText("Optional");
+        birthDayField.setPromptText("Optional (only for single author)");
 
         this.getDialogPane().setContent(grid);
 
@@ -69,15 +70,26 @@ public class AddBookDialog extends Dialog<Book> {
                                 titleField.getText().trim(),
                                 publishedDate
                         );
-                        String authorName = authorField.getText().trim();
-                        if (!authorName.isEmpty()) {
-                            Date authorBirthDate = birthDayField.getValue() != null 
-                                ? Date.valueOf(birthDayField.getValue()) 
-                                : null;
-                            Author author = authorBirthDate != null 
-                                ? new Author(authorName, authorBirthDate)
-                                : new Author(authorName);
-                            result.addAuthor(author);
+                        // Handle multiple authors (comma-separated)
+                        String authorsText = authorField.getText().trim();
+                        if (!authorsText.isEmpty()) {
+                            String[] authorNames = authorsText.split(",");
+                            Date authorBirthDate = null;
+                            
+
+                            if (authorNames.length == 1 && birthDayField.getValue() != null) {
+                                authorBirthDate = Date.valueOf(birthDayField.getValue());
+                            }
+                            
+                            for (String authorName : authorNames) {
+                                authorName = authorName.trim();
+                                if (!authorName.isEmpty()) {
+                                    Author author = authorBirthDate != null 
+                                        ? new Author(authorName, authorBirthDate)
+                                        : new Author(authorName);
+                                    result.addAuthor(author);
+                                }
+                            }
                         }
 
                         String genresText = genreField.getText().trim();
@@ -119,7 +131,21 @@ public class AddBookDialog extends Dialog<Book> {
         if (publishedField.getValue() == null) {
             return false;
         }
-        if (authorField.getText().trim().isEmpty()) {
+        // Check if at least one author is provided
+        String authorsText = authorField.getText().trim();
+        if (authorsText.isEmpty()) {
+            return false;
+        }
+        // Validate that there's at least one non-empty author name
+        String[] authorNames = authorsText.split(",");
+        boolean hasValidAuthor = false;
+        for (String name : authorNames) {
+            if (!name.trim().isEmpty()) {
+                hasValidAuthor = true;
+                break;
+            }
+        }
+        if (!hasValidAuthor) {
             return false;
         }
 

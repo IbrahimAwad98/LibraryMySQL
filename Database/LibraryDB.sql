@@ -138,4 +138,3 @@ TO 'library_client'@'localhost';
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Rating 
 TO 'library_client'@'localhost';
-

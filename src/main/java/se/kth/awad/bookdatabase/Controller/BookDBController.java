@@ -46,7 +46,18 @@ public class BookDBController {
                 booksView.showAlertAndWait("Database 'LibraryDB' not found", WARNING);
             }
         } catch (Exception e) {
-            booksView.showAlertAndWait("Connection failed: " + e.getMessage(), ERROR);
+            String errorDetails = e.getMessage();
+            if (e.getCause() != null && e.getCause().getMessage() != null) {
+                errorDetails += "\n\nCause: " + e.getCause().getMessage();
+            }
+            booksView.showAlertAndWait(
+                "Connection failed!\n\n" + errorDetails + 
+                "\n\nPlease check:\n" +
+                "1. MySQL server is running\n" +
+                "2. Database 'LibraryDB' exists\n" +
+                "3. User has proper permissions",
+                ERROR
+            );
             e.printStackTrace();
         }
     }
@@ -240,7 +251,7 @@ public class BookDBController {
             try {
                 refreshBookList();
                 booksView.showAlertAndWait(
-                        "Grade for '" + trimmedTitle + "' updated to " + newGrade,
+                        "Rating for '" + trimmedTitle + "' set to " + newGrade + " (replaced previous rating)",
                         CONFIRMATION
                 );
             } catch (BooksDbException ex) {

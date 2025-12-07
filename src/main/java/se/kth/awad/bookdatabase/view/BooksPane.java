@@ -94,7 +94,6 @@ public class BooksPane extends VBox {
         ratingCol.setCellValueFactory(new PropertyValueFactory<>("averageRating"));
         nameCol.setCellValueFactory(new PropertyValueFactory<>("authorsAsString"));
 
-        // rating med en decimal
         ratingCol.setCellFactory(column -> new TableCell<Book, Integer>() {
             @Override
             protected void updateItem(Integer item, boolean empty) {
@@ -199,8 +198,5 @@ public class BooksPane extends VBox {
         });
         helpMenu.getItems().add(aboutItem);
         menuBar.getMenus().add(helpMenu);
-
-
-
     }
 }

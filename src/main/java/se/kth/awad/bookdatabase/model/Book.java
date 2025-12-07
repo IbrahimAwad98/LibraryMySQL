@@ -111,13 +111,27 @@ public class Book {
 
     // Metoder
     public void addAuthor(Author author){
-        if(!this.authors.contains(author)){ //inga dubbletter
+        boolean exists = false;
+        for (Author existingAuthor : this.authors) {
+            if (existingAuthor.getName().equalsIgnoreCase(author.getName())) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
             this.authors.add(author);
         }
     }
 
     public void addGenre(Genre genre){
-        if(!this.genres.contains(genre)){ //dubbletter
+        boolean exists = false;
+        for (Genre existingGenre : this.genres) {
+            if (existingGenre.getGenreName().equalsIgnoreCase(genre.getGenreName())) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
             this.genres.add(genre);
         }
     }
