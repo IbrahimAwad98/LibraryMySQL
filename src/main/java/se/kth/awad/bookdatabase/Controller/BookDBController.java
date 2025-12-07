@@ -85,7 +85,7 @@ public class BookDBController {
                     case Author:
                         return booksDb.searchBooksByAuthor(searchFor);
                     case Rating:
-                        double minRating = Double.parseDouble(searchFor);
+                        int minRating = (int) Double.parseDouble(searchFor);
                         return booksDb.searchBooksByRating(minRating);
                     case Genre:
                         return booksDb.searchBooksByGenre(searchFor);

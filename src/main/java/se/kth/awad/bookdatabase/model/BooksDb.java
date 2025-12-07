@@ -58,7 +58,7 @@ public class BooksDb implements BooksDbInterface {
                 //skapa bok
                 Book book = new Book(bookID, ISBN, title, publishedDate);
                 // sätt betyg
-                double avgRating = rs.getDouble("averageRating");
+                int avgRating = rs.getInt("averageRating");
                 if (!rs.wasNull()) {
                     book.setAverageRating(avgRating);
                 }
@@ -277,7 +277,7 @@ public class BooksDb implements BooksDbInterface {
         Connection con = null;
         try{
             con = dbConnection.getConnection();
-            con.setAutoCommit(false);
+            con.setAutoCommit(false); //transaktion
 
             String bookSql = "INSERT INTO T_Book (ISBN, title, publishedDate) VALUES (?, ?, ?)";
             pstmtBook = con.prepareStatement(bookSql, Statement.RETURN_GENERATED_KEYS);
@@ -515,7 +515,7 @@ public class BooksDb implements BooksDbInterface {
         
         Book book = new Book(bookID, ISBN, title, publishedDate);
 
-        double avgRating = rs.getDouble("averageRating");
+        int avgRating = rs.getInt("averageRating");
         if (!rs.wasNull()) {
             book.setAverageRating(avgRating);
         }
@@ -541,7 +541,7 @@ public class BooksDb implements BooksDbInterface {
 
 
     @Override
-    public List<Book> searchBooksByRating(double minRating) throws BooksDbException {
+    public List<Book> searchBooksByRating(int  minRating) throws BooksDbException {
         List<Book> result = new ArrayList<>();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -563,7 +563,7 @@ public class BooksDb implements BooksDbInterface {
                     "HAVING AVG(R.ratingValue) = ?;";
 
             pstmt = dbConnection.getConnection().prepareStatement(sql);
-            pstmt.setDouble(1, minRating);
+            pstmt.setInt(1, minRating);
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -602,23 +602,35 @@ public class BooksDb implements BooksDbInterface {
         Connection con = null;
         try {
             con = dbConnection.getConnection();
-            
+            con.setAutoCommit(false);
             String sql = "INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES (?, ?, CURDATE())";
             pstmt = con.prepareStatement(sql);
             pstmt.setInt(1, bookID);
             pstmt.setInt(2, ratingValue);
 
             int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-            
+            if(rowsAffected > 0){
+                con.commit();
+                System.out.println("[BooksDbImpl] ✓ Betyg tillagt");
+                return true;
+            }else {
+                con.rollback();
+                System.out.println("[BooksDbImpl] ✗ Inget betyg tillagt");
+                return false;
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
-            throw new BooksDbException("Error adding rating: " + e.getMessage(), e);
+            try {
+                con.rollback();
+                System.out.println("[BooksDbImpl] ✗ Rollback - Error while adding rating");
+            } catch (SQLException rollbackEx) {
+                throw new BooksDbException("Failed to rollback transaction", rollbackEx);
+            }
+            throw new BooksDbException("Failed to add rating for book ID " + bookID, e);
         } finally {
             try {
-                if (pstmt != null) pstmt.close();
+                con.setAutoCommit(true);
             } catch (SQLException e) {
-                e.printStackTrace();
+                System.err.println("[BooksDbImpl] Warning: Failed to reset auto-commit");
             }
         }
     }

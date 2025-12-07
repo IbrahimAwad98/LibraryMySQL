@@ -73,7 +73,7 @@ public class BooksPane extends VBox {
         TableColumn<Book, String> isbnCol = new TableColumn<>("ISBN");
         TableColumn<Book, Date> publishedCol = new TableColumn<>("Published");
         TableColumn<Book, String> genreCol = new TableColumn<>("Genre");
-        TableColumn<Book, Double> ratingCol = new TableColumn<>("Rating");
+        TableColumn<Book, Integer> ratingCol = new TableColumn<>("Rating");
         TableColumn<Book, Integer> nameCol = new TableColumn<>("Name");
 
 
@@ -95,14 +95,14 @@ public class BooksPane extends VBox {
         nameCol.setCellValueFactory(new PropertyValueFactory<>("authorsAsString"));
 
         // rating med en decimal
-        ratingCol.setCellFactory(column -> new TableCell<Book, Double>() {
+        ratingCol.setCellFactory(column -> new TableCell<Book, Integer>() {
             @Override
-            protected void updateItem(Double item, boolean empty) {
+            protected void updateItem(Integer item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
                 } else {
-                    setText(String.format("%.1f", item));
+                    setText(String.valueOf(item));
                 }
             }
         });

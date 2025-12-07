@@ -16,7 +16,7 @@ public class Book {
     private ArrayList<Author> authors;
     private ArrayList<Genre> genres;
     //Betyginfo från T_Rating
-    private double averageRating;
+    private int averageRating;
     private int numRatings;
 
     // Konstruktor för att läsa från databasen (med ID).
@@ -69,7 +69,7 @@ public class Book {
         return genres;
     }
 
-    public double getAverageRating(){
+    public int getAverageRating(){
         return averageRating;
     }
 
@@ -101,7 +101,7 @@ public class Book {
         this.genres = genres;
     }
 
-    public void setAverageRating(double averageRating) {
+    public void setAverageRating(int averageRating) {
         this.averageRating = averageRating;
     }
 

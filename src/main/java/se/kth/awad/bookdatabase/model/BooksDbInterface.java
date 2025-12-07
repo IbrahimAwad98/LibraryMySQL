@@ -95,7 +95,7 @@ public interface BooksDbInterface {
      * @return lista över matchande böcker
      * @throws BooksDbException om sökningen misslyckas
      */
-    List<Book> searchBooksByRating(double minRating) throws BooksDbException;
+    List<Book> searchBooksByRating(int minRating) throws BooksDbException;
 
     /**
      * Lägger till ett betyg för en bok.
