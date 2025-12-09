@@ -103,19 +103,23 @@ INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES
 (4, 8, '2024-04-01'), (4, 9, '2024-04-05'), (4, 9, '2024-04-10'),
 (5, 5, '2024-05-01'), (5, 6, '2024-05-05'), (5, 7, '2024-05-10');
 
--- test för visa tabel
+-- se allt ihop
 /*
 SELECT 
     b.title,
     b.ISBN,
-    b.publishedDate,
-    GROUP_CONCAT(DISTINCT g.genreName SEPARATOR ', ') as genres
+    GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as authors,
+    GROUP_CONCAT(DISTINCT g.genreName SEPARATOR ', ') as genres,
+    AVG(r.ratingValue) as avgRating,
+    MAX(r.ratingDate) as latestRatingDate
 FROM T_Book b
+LEFT JOIN T_Book_Author ba ON b.bookID = ba.bookID
+LEFT JOIN T_Author a ON ba.authorID = a.authorID
 LEFT JOIN T_Book_Genre bg ON b.bookID = bg.bookID
 LEFT JOIN T_Genre g ON bg.genreID = g.genreID
-GROUP BY b.bookID, b.title, b.ISBN, b.publishedDate;
-*/ 
-
+LEFT JOIN T_Rating r ON b.bookID = r.bookID
+GROUP BY b.bookID, b.title, b.ISBN;
+*/
 
 -- skapa användare med begränsat behörighet. 
 CREATE USER 'library_client'@'localhost' 
