@@ -3,21 +3,27 @@ DROP DATABASE IF EXISTS LibraryDB;
 DROP USER IF EXISTS 'Admin'@'localhost';
 DROP USER IF EXISTS 'library_client'@'localhost';
 
-
 -- skapa admin (hela behörighet)
 CREATE USER 'Admin'@'localhost' IDENTIFIED BY 'Admin2025';
 GRANT ALL PRIVILEGES ON *.* TO 'Admin'@'localhost';
-
 
 -- skapa databas
 CREATE DATABASE LibraryDB;
 USE LibraryDB;
 
 -- Tabeller
+CREATE TABLE T_User(
+    userID INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE T_Author(
     authorID INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    birthDate DATE
+    birthDate DATE,
+    addedByUserID INT,  -- LÄGG TILL DIREKT HÄR
+    FOREIGN KEY (addedByUserID) REFERENCES T_User(userID)
 );
 
 CREATE TABLE T_Genre(
@@ -29,15 +35,30 @@ CREATE TABLE T_Book(
     bookID INT AUTO_INCREMENT PRIMARY KEY,
     ISBN VARCHAR(13) UNIQUE NOT NULL,
     title VARCHAR(200) NOT NULL,
-    publishedDate DATE
+    publishedDate DATE,
+    addedByUserID INT,  
+    FOREIGN KEY (addedByUserID) REFERENCES T_User(userID)
 );
 
 CREATE TABLE T_Rating(
     ratingID INT AUTO_INCREMENT PRIMARY KEY,
     bookID INT NOT NULL,
+    userID INT NOT NULL,  -- LÄGG TILL DIREKT
     ratingValue INT NOT NULL CHECK (ratingValue BETWEEN 1 AND 10),
     ratingDate DATE NOT NULL,
-    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE
+    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE,
+    FOREIGN KEY (userID) REFERENCES T_User(userID),  
+    UNIQUE KEY unique_user_book_rating (bookID, userID)  -- EN RATING PER USER PER BOK
+);
+
+CREATE TABLE T_Review(
+    reviewID INT PRIMARY KEY AUTO_INCREMENT,
+    bookID INT NOT NULL,
+    userID INT NOT NULL,
+    reviewText TEXT NOT NULL,
+    reviewDate DATE NOT NULL,
+    FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE,
+    FOREIGN KEY (userID) REFERENCES T_User(userID) ON DELETE CASCADE  
 );
 
 CREATE TABLE T_Book_Author(
@@ -56,6 +77,13 @@ CREATE TABLE T_Book_Genre(
     FOREIGN KEY (genreID) REFERENCES T_Genre(genreID) ON DELETE CASCADE
 );
 
+-- Lägg till testanvändare
+INSERT INTO T_User (username, password) VALUES
+('testuser', 'password123'),
+('admin', 'admin123'),
+('alice', 'alice123'),
+('bob', 'bob123');
+
 -- fyll i data
 INSERT INTO T_Author (name, birthDate) VALUES
 ('Miguel de Cervantes', '1547-09-29'),
@@ -73,7 +101,6 @@ INSERT INTO T_Genre (genreName) VALUES
 ('Young Adult'),
 ('Drama');
 
-
 INSERT INTO T_Book (ISBN, title, publishedDate) VALUES
 ('9780060934347', 'Don Quixote', '1605-01-16'),
 ('9780486406510', 'A Tale of Two Cities', '1859-04-30'),
@@ -82,11 +109,7 @@ INSERT INTO T_Book (ISBN, title, publishedDate) VALUES
 ('9780439708180', 'Harry Potter and the Philosopher''s Stone', '1997-06-26');
 
 INSERT INTO T_Book_Author (bookID, authorID) VALUES
-(1, 1),  
-(2, 2),  
-(3, 3),  
-(4, 4),  
-(5, 5);  
+(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 
 INSERT INTO T_Book_Genre (bookID, genreID) VALUES
 (1, 1), (1, 2),          
@@ -96,32 +119,32 @@ INSERT INTO T_Book_Genre (bookID, genreID) VALUES
 (5, 3), (5, 6), (5, 2); 
 
 
-INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES
-(1, 7, '2024-01-15'), (1, 8, '2024-01-20'), (1, 9, '2024-01-25'),
-(2, 6, '2024-02-01'), (2, 7, '2024-02-05'), (2, 8, '2024-02-10'),
-(3, 9, '2024-03-01'), (3, 10, '2024-03-05'), (3, 10, '2024-03-10'),
-(4, 8, '2024-04-01'), (4, 9, '2024-04-05'), (4, 9, '2024-04-10'),
-(5, 5, '2024-05-01'), (5, 6, '2024-05-05'), (5, 7, '2024-05-10');
+INSERT INTO T_Rating (bookID, userID, ratingValue, ratingDate) VALUES
+(1, 1, 7, '2024-01-15'),   -- user 1 ger betyg 7
+(1, 2, 8, '2024-01-20'),   -- user 2 ger betyg 8
+(1, 3, 9, '2024-01-25'),   -- user 3 ger betyg 9
 
--- se allt ihop
-/*
-SELECT 
-    b.title,
-    b.ISBN,
-    GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') as authors,
-    GROUP_CONCAT(DISTINCT g.genreName SEPARATOR ', ') as genres,
-    AVG(r.ratingValue) as avgRating,
-    MAX(r.ratingDate) as latestRatingDate
-FROM T_Book b
-LEFT JOIN T_Book_Author ba ON b.bookID = ba.bookID
-LEFT JOIN T_Author a ON ba.authorID = a.authorID
-LEFT JOIN T_Book_Genre bg ON b.bookID = bg.bookID
-LEFT JOIN T_Genre g ON bg.genreID = g.genreID
-LEFT JOIN T_Rating r ON b.bookID = r.bookID
-GROUP BY b.bookID, b.title, b.ISBN;
-*/
+(2, 1, 6, '2024-02-01'),   -- user 1 ger betyg 6
+(2, 3, 7, '2024-02-05'),   -- user 3 ger betyg 7
+(2, 4, 8, '2024-02-10'),   -- user 4 ger betyg 8
 
--- skapa användare med begränsat behörighet. 
+(3, 2, 9, '2024-03-01'),   -- user 2 ger betyg 9
+(3, 3, 10, '2024-03-05'),  -- user 3 ger betyg 10
+(3, 4, 10, '2024-03-10'),  -- user 4 ger betyg 10
+
+(4, 1, 8, '2024-04-01'),   -- user 1 ger betyg 8
+(4, 2, 9, '2024-04-05'),   -- user 2 ger betyg 9
+(4, 4, 9, '2024-04-10'),   -- user 4 ger betyg 9
+
+(5, 1, 5, '2024-05-01'),   -- user 1 ger betyg 5
+(5, 3, 6, '2024-05-05'),   -- user 3 ger betyg 6
+(5, 4, 7, '2024-05-10');   -- user 4 ger betyg 7
+
+INSERT INTO T_Review (bookID, userID, reviewText, reviewDate) VALUES
+(1, 1, 'En fantastisk klassiker! Mycket rolig.', '2024-01-15'),
+(3, 2, 'Bästa fantasy-serien någonsin.', '2024-03-01');
+
+-- skapa användare med begränsat behörighet
 CREATE USER 'library_client'@'localhost' 
 IDENTIFIED BY 'LibClient2025!';
 
@@ -141,4 +164,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Book_Genre
 TO 'library_client'@'localhost';
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Rating 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_User 
+TO 'library_client'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON LibraryDB.T_Review 
 TO 'library_client'@'localhost';

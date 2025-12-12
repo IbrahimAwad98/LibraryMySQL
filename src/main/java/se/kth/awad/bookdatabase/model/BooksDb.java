@@ -26,7 +26,7 @@ public class BooksDb implements BooksDbInterface {
         return dbConnection.disconnect();
     }
 
-    // Sql frågor
+    // BOOK OPERATIONS
     @Override
     public List<Book> retrieveBookTable() throws BooksDbException {
         List<Book> result = new ArrayList<>();
@@ -810,4 +810,7 @@ public class BooksDb implements BooksDbInterface {
             }
         }
     }
+
+
+
 }
