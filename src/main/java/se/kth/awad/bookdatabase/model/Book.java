@@ -7,6 +7,9 @@ import java.util.Objects;
 /**
  * Representerar en bok från T_Book tabellen i LibraryDB.
  * Den har relation till Genre, author och rating
+ * VG-UPPDATERINGAR:
+ * - addedBy: Spårar vilken användare som lade till boken
+ * - reviews: Lista med recensioner för denna bok
  */
 public class Book {
     private int bookID;
@@ -18,6 +21,10 @@ public class Book {
     //Betyginfo från T_Rating
     private int averageRating;
     private int numRatings;
+    //VG attribut
+    private int addedBy;
+    private ArrayList<Review> reviews;
+
 
     // Konstruktor för att läsa från databasen (med ID).
     public Book(int bookID,
@@ -32,11 +39,27 @@ public class Book {
         this.genres = new ArrayList<>();
         this.averageRating = 0;
         this.numRatings = 0;
+        this.addedBy = -1; //inte satt en så länge
+        this.reviews = new ArrayList<>();
     }
 
      // Konstruktor för att skapa ny bok (utan ID).
     public Book(String ISBN, String title, Date publishedDate){
         this(-1, ISBN, title, publishedDate);
+    }
+
+    public Book(int bookID,
+                String ISBN,
+                String title,
+                Date publishedDate,
+                int addedBy){
+        this(bookID, ISBN, title, publishedDate);
+        this.addedBy = addedBy;
+    }
+
+    // Konstruktor för att skapa ny bok med användare (VG)
+    public Book(String ISBN, String title, Date publishedDate, int addedBy){
+        this(-1, ISBN, title, publishedDate, addedBy);
     }
 
     public int getBookID(){
@@ -77,6 +100,14 @@ public class Book {
         return numRatings;
     }
 
+    public int getAddedBy(){
+        return addedBy;
+    }
+
+    public ArrayList<Review> getReviews(){
+        return reviews;
+    }
+
     public void setBookID(int newID){
         this.bookID = newID;
     }
@@ -109,6 +140,14 @@ public class Book {
         this.numRatings = numRatings;
     }
 
+    public void setAddedBy(int newAddedBy){
+        this.addedBy = newAddedBy;
+    }
+
+    public void setReviews(ArrayList<Review> newReviews){
+        this.reviews = newReviews;
+    }
+
     // Metoder
     public void addAuthor(Author author){
         boolean exists = false;
@@ -124,7 +163,7 @@ public class Book {
     }
 
     public void addGenre(Genre genre){
-        boolean exists = false;
+        boolean exists = false; //un
         for (Genre existingGenre : this.genres) {
             if (existingGenre.getGenreName().equalsIgnoreCase(genre.getGenreName())) {
                 exists = true;
@@ -133,6 +172,19 @@ public class Book {
         }
         if (!exists) {
             this.genres.add(genre);
+        }
+    }
+
+    public void addReview(Review review){
+        boolean exists = false; //undvik dubbletter
+        for(Review existingReview: this.reviews){
+            if(existingReview.getReviewID() == review.getReviewID()){
+                exists = true;
+                break;
+            }
+        }
+        if(!exists){
+            this.reviews.add(review);
         }
     }
 
@@ -165,11 +217,36 @@ public class Book {
         return sb.toString();
     }
 
+
+    public String getReviewsAsString(){
+        if(reviews.isEmpty()){
+            return "No reviews yet";
+        }
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i <reviews.size();i++){
+            Review r = reviews.get(i);
+            sb.append(r.getReviewDate()).append(": ");
+            sb.append(r.getReviewText().substring(0, Math.min(50, r.getReviewText().length())));
+            if(r.getReviewText().length() > 50){
+                sb.append("...");
+            }
+            if(i < reviews.size() - 1){
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
     public String getPublishedYear(){
         if(publishedDate == null){
             return "N/A";
         }
         return String.valueOf(publishedDate.toLocalDate().getYear());
+    }
+
+    //antal recensioner för denna bok
+    public int getNumReviews(){
+        return reviews.size();
     }
 
     // Object metoder
@@ -186,5 +263,19 @@ public class Book {
 
     public int hashCode(){
         return Objects.hash(bookID);
+    }
+
+    public String toString(){
+        return "Book{" +
+                "bookID=" + bookID +
+                ", ISBN='" + ISBN + '\'' +
+                ", title='" + title + '\'' +
+                ", avgRating=" + averageRating +
+                ", numRatings=" + numRatings +
+                ", addedBy=" + addedBy +
+                ", numReviews=" + reviews.size() +
+                ", authors=" + authors.size() +
+                ", genres=" + genres.size() +
+                '}';
     }
 }

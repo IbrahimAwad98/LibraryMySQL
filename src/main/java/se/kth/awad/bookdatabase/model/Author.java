@@ -5,17 +5,27 @@ import java.util.Objects;
 
 /**
  * Representerar en författare från T_Author tabellen i LibraryDB.
+ * VG-UPPDATERINGAR:
+ * addedBy: Spårar vilken användare som lade till författaren
  */
 public class Author {
     private int authorID;      // Matchar T_Author.authorID
     private String name;       // Matchar T_Author.name
     private Date birthDate;    // Matchar T_Author.birthDate
+    private int addedBy;
+
 
     // Konstruktor för att läsa från databasen (med ID)
     public Author(int authorID, String name, Date birthDate) {
         this.authorID = authorID;
         this.name = name;
         this.birthDate = birthDate;
+        this.addedBy = -1;
+    }
+
+    public Author(int authorID, String name, Date birthDate, int addedBy) {
+        this(authorID, name, birthDate);
+        this.addedBy = addedBy;
     }
 
     // Konstruktor för att skapa ny författare (utan ID)
@@ -23,11 +33,13 @@ public class Author {
         this(-1, name, birthDate);
     }
 
-    // Enkel konstruktor (endast namn)
-    public Author(String name) {
-        this(name, null);
+    public Author(String name, Date birthDate, int addedBy){
+        this(-1,name,birthDate,addedBy);
     }
 
+    public Author(String authorName) {
+        this.name = authorName;
+    }
 
     public int getAuthorID() {
         return authorID;
@@ -41,6 +53,9 @@ public class Author {
         return birthDate;
     }
 
+    public int getAddedBy(){
+        return addedBy;
+    }
 
     public void setAuthorID(int authorID) {
         this.authorID = authorID;
@@ -54,12 +69,15 @@ public class Author {
         this.birthDate = birthDate;
     }
 
-    @Override
-    public String toString() {
-        if (birthDate != null) {
-            return name + " (born: " + birthDate + ")";
+    public void setAddedBy(int newAddedBy){
+        this.addedBy = newAddedBy;
+    }
+
+    public String getBirthYear() {
+        if (birthDate == null) {
+            return "N/A";
         }
-        return name;
+        return String.valueOf(birthDate.toLocalDate().getYear());
     }
 
     @Override
@@ -73,5 +91,15 @@ public class Author {
     @Override
     public int hashCode() {
         return Objects.hash(authorID);
+    }
+
+    @Override
+    public String toString() {
+        return "Author{" +
+                "authorID=" + authorID +
+                ", name='" + name + '\'' +
+                ", birthDate=" + birthDate +
+                ", addedBy=" + addedBy +
+                '}';
     }
 }
