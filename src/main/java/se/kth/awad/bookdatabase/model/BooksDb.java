@@ -185,35 +185,25 @@ public class BooksDb implements BooksDbInterface {
             book.setBookID(bookID);
 
             if (book.getAuthors() != null && !book.getAuthors().isEmpty()) {
-                System.out.println(
-                        "[BooksDb] Processing " + book.getAuthors().size() + " author(s) for book: " + book.getTitle());
-
                 for (Author author : book.getAuthors()) {
-                    System.out.println("[BooksDb] Processing author: " + author.getName());
                     int authorID = getOrCreateAuthor(connection, author);
                     linkBookAuthor(connection, bookID, authorID);
                 }
             }
 
             if (book.getGenres() != null && !book.getGenres().isEmpty()) {
-                System.out.println(
-                        "[BooksDb] Processing " + book.getGenres().size() + " genre(s) for book: " + book.getTitle());
-
                 for (Genre genre : book.getGenres()) {
-                    System.out.println("[BooksDb] Processing genre: " + genre.getGenreName());
                     int genreID = getOrCreateGenre(connection, genre);
                     linkBookGenre(connection, bookID, genreID);
                 }
             }
 
             connection.commit();
-            System.out.println("[BooksDb] Book inserted successfully with ID: " + bookID);
 
         } catch (SQLException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] Rollback - Error inserting book");
                 } catch (SQLException rollbackEx) {
                     throw new BooksDbException("Rollback failed", rollbackEx);
                 }
@@ -224,7 +214,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    // Ignorera eftersom vi redan har hanterat felet
                 }
             }
         }
@@ -250,13 +240,11 @@ public class BooksDb implements BooksDbInterface {
             }
 
             connection.commit();
-            System.out.println("[BooksDb] Book deleted successfully (ID: " + book.getBookID() + ")");
 
         } catch (SQLException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] Rollback - Error deleting book");
                 } catch (SQLException rollbackEx) {
                     throw new BooksDbException("Rollback failed", rollbackEx);
                 }
@@ -267,7 +255,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    // Ignorera eftersom vi redan har hanterat felet
                 }
             }
         }
@@ -294,13 +282,11 @@ public class BooksDb implements BooksDbInterface {
             }
 
             connection.commit();
-            System.out.println("[BooksDb] Book updated successfully (ID: " + book.getBookID() + ")");
 
         } catch (SQLException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] Rollback - Error updating book");
                 } catch (SQLException rollbackEx) {
                     throw new BooksDbException("Rollback failed", rollbackEx);
                 }
@@ -311,7 +297,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    // Ignorera eftersom vi redan har hanterat felet
                 }
             }
         }
@@ -337,11 +323,11 @@ public class BooksDb implements BooksDbInterface {
 
             // Infoga nytt betyg
             String insertSql = "INSERT INTO T_Rating (bookID, ratingValue, ratingDate) VALUES (?, ?, CURDATE())";
-            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
-                pstmt.setInt(1, bookID);
-                pstmt.setInt(2, ratingValue);
+            try (PreparedStatement preparedStatement = connection.prepareStatement(insertSql)) {
+                preparedStatement.setInt(1, bookID);
+                preparedStatement.setInt(2, ratingValue);
 
-                int rowsAffected = pstmt.executeUpdate();
+                int rowsAffected = preparedStatement.executeUpdate();
                 if (rowsAffected > 0) {
                     connection.commit();
                     System.out.println("[BooksDb] Rating updated (replaced previous rating)");
@@ -357,7 +343,6 @@ public class BooksDb implements BooksDbInterface {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] Rollback - Error adding rating");
                 } catch (SQLException rollbackEx) {
                     throw new BooksDbException("Failed to rollback transaction", rollbackEx);
                 }
@@ -368,7 +353,6 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    System.err.println("[BooksDb] Warning: Failed to reset auto-commit");
                 }
             }
         }
@@ -504,7 +488,6 @@ public class BooksDb implements BooksDbInterface {
      * Tar bort en författare om de inte har några andra böcker.
      */
     private void deleteAuthorIfOrphaned(Connection con, int authorID) throws SQLException {
-
         String checkSql = "SELECT COUNT(*) FROM T_Book_Author WHERE authorID = ?";
         try (PreparedStatement preparedStatement = con.prepareStatement(checkSql)) {
             preparedStatement.setInt(1, authorID);
@@ -674,11 +657,11 @@ public class BooksDb implements BooksDbInterface {
         String sql = "SELECT userID, username FROM T_User " +
                 "WHERE username = ? AND password = ?";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, username);
-            pstmt.setString(2, password);
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
+            preparedStatement.setString(1, username);
+            preparedStatement.setString(2, password);
 
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 if (rs.next()) {
                     int userID = rs.getInt("userID");
                     String user = rs.getString("username");
@@ -696,11 +679,11 @@ public class BooksDb implements BooksDbInterface {
     public void createUser(String username, String password) throws BooksDbException {
         String sql = "INSERT INTO T_User (username, password) VALUES (?,?)";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, username);
-            pstmt.setString(2, password);
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
+            preparedStatement.setString(1, username);
+            preparedStatement.setString(2, password);
 
-            int rowsAffected = pstmt.executeUpdate();
+            int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
                 throw new BooksDbException("Kunde inte skapa användare");
             }
@@ -722,12 +705,12 @@ public class BooksDb implements BooksDbInterface {
         String sql = "INSERT INTO T_Rating (bookID, userID, ratingValue, ratingDate) " +
                 "VALUES (?, ?, ?, CURDATE())";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
-            pstmt.setInt(1, bookID);
-            pstmt.setInt(2, userID);
-            pstmt.setInt(3, ratingValue);
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
+            preparedStatement.setInt(1, bookID);
+            preparedStatement.setInt(2, userID);
+            preparedStatement.setInt(3, ratingValue);
 
-            pstmt.executeUpdate();
+            preparedStatement.executeUpdate();
 
         } catch (SQLException e) {
             if (e.getMessage().contains("Duplicate entry") ||
@@ -743,11 +726,11 @@ public class BooksDb implements BooksDbInterface {
     public boolean hasUserRatedBook(int bookID, int userID) throws BooksDbException {
         String sql = "SELECT COUNT(*) AS count FROM T_Rating WHERE bookID = ? AND userID = ?";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
-            pstmt.setInt(1, bookID);
-            pstmt.setInt(2, userID);
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
+            preparedStatement.setInt(1, bookID);
+            preparedStatement.setInt(2, userID);
 
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("count") > 0;
                 }
@@ -767,12 +750,12 @@ public class BooksDb implements BooksDbInterface {
         String sql = "INSERT INTO T_Review (bookID, userID, reviewText, reviewDate) " +
                 "VALUES (?, ?, ?, CURDATE())";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
-            pstmt.setInt(1, bookID);
-            pstmt.setInt(2, userID);
-            pstmt.setString(3, reviewText.trim());
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
+            preparedStatement.setInt(1, bookID);
+            preparedStatement.setInt(2, userID);
+            preparedStatement.setString(3, reviewText.trim());
 
-            int rowsAffected = pstmt.executeUpdate();
+            int rowsAffected = preparedStatement.executeUpdate();
             if (rowsAffected == 0) {
                 throw new BooksDbException("Kunde inte lägga till recension");
             }
@@ -792,10 +775,10 @@ public class BooksDb implements BooksDbInterface {
                 "WHERE r.bookID = ? " +
                 "ORDER BY r.reviewDate DESC";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
-            pstmt.setInt(1, bookID);
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
+            preparedStatement.setInt(1, bookID);
 
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 while (rs.next()) {
                     int reviewID = rs.getInt("reviewID");
                     int book = rs.getInt("bookID");
@@ -859,7 +842,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    // Ignorera eftersom vi redan har hanterat felet
                 }
             }
         }
@@ -944,8 +927,6 @@ public class BooksDb implements BooksDbInterface {
             }
 
             // Logging för audit
-            System.out.println("[AUDIT] Book " + bookID + " deleted by user " + userID);
-
             connection.commit();
 
         } catch (SQLException e) {
@@ -962,7 +943,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    // Ignorera eftersom vi redan har hanterat felet
                 }
             }
         }

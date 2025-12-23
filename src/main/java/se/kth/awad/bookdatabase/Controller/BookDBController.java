@@ -38,7 +38,6 @@ public class BookDBController {
                     booksView.displayBooks(books);
                     booksView.showAlertAndWait("Successfully connected to database 'LibraryDB'", CONFIRMATION);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     booksView.showAlertAndWait("Error fetching table: " + e.getMessage(), ERROR);
                 }
             } else {
@@ -56,7 +55,6 @@ public class BookDBController {
                             "2. Database 'LibraryDB' exists\n" +
                             "3. User has proper permissions",
                     ERROR);
-            e.printStackTrace();
         }
     }
 
@@ -148,7 +146,6 @@ public class BookDBController {
                         authorIDs.add(author.getAuthorID());
                     }
                 }
-                // Extrahera genre-namn
                 List<String> genreNames = new ArrayList<>();
                 if (book.getGenres() != null) {
                     for (Genre genre : book.getGenres()) {
@@ -172,7 +169,6 @@ public class BookDBController {
         task.setOnFailed(e -> {
             Throwable exception = task.getException();
             booksView.showAlertAndWait("Error adding book: " + exception.getMessage(), ERROR);
-            exception.printStackTrace();
         });
 
         Thread thread = new Thread(task);
@@ -217,7 +213,6 @@ public class BookDBController {
                 booksView.showAlertAndWait("Book '" + title + "' deleted successfully", CONFIRMATION);
             } catch (BooksDbException ex) {
                 booksView.showAlertAndWait("Error refreshing list: " + ex.getMessage(), ERROR);
-                ex.printStackTrace();
             }
         });
         task.setOnFailed(e -> {
@@ -287,7 +282,6 @@ public class BookDBController {
                 booksView.showAlertAndWait(
                         "Error refreshing list: " + ex.getMessage(),
                         ERROR);
-                ex.printStackTrace();
             }
 
         });
@@ -301,7 +295,6 @@ public class BookDBController {
                         "Error updating grade: " + exception.getMessage(),
                         ERROR);
             }
-            exception.printStackTrace();
         });
 
         Thread thread = new Thread(task);
