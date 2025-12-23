@@ -7,15 +7,19 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import se.kth.awad.bookdatabase.Controller.BookDBController;
 import se.kth.awad.bookdatabase.model.*;
 import javafx.application.Platform;
+import se.kth.awad.bookdatabase.model.User;
 
-/*
+
+/**
  * Huvudvyn för applikationen.
+ * VG-VERSION: Inkluderar login-funktionalitet
  */
 public class BooksPane extends VBox {
 
@@ -25,6 +29,19 @@ public class BooksPane extends VBox {
     private TextField searchField;
     private Button searchButton;
     private MenuBar menuBar;
+    private Button loginButton;
+    private Label userStatusLabel;
+    private BookDBController controller;
+
+    // Knappar som kräver inloggning
+    private MenuItem addMenuItem;
+    private MenuItem removeMenuItem;
+    private MenuItem updateMenuItem;
+    // Knappar som kräver för recension
+    private MenuItem reviewMenuItem;
+
+
+
 
     public BooksPane() {}
 
@@ -43,6 +60,7 @@ public class BooksPane extends VBox {
     }
 
     private void init(BookDBController controller) {
+        this.controller = controller;
 
         booksInTable = FXCollections.observableArrayList();
         BorderPane mainPane = new BorderPane();
@@ -50,6 +68,9 @@ public class BooksPane extends VBox {
         initBooksTable();
         initSearchView(controller);
         initMenus(controller);
+
+        // Skapa login-controls
+        HBox loginBox = setupLoginControls();
 
         FlowPane bottomPane = new FlowPane();
         bottomPane.setHgap(10);
@@ -60,8 +81,12 @@ public class BooksPane extends VBox {
         mainPane.setBottom(bottomPane);
         mainPane.setPadding(new Insets(10, 10, 10, 10));
 
-        this.getChildren().addAll(menuBar, mainPane);
+        // Lägg till menuBar, loginBox och mainPane
+        this.getChildren().addAll(menuBar, loginBox, mainPane);
         VBox.setVgrow(mainPane, Priority.ALWAYS);
+
+        // VG: Starta med inaktiverade funktioner (ej inloggad)
+        disableLoggedInFeatures();
     }
 
     private void initBooksTable() {
@@ -74,16 +99,17 @@ public class BooksPane extends VBox {
         TableColumn<Book, Date> publishedCol = new TableColumn<>("Published");
         TableColumn<Book, String> genreCol = new TableColumn<>("Genre");
         TableColumn<Book, Integer> ratingCol = new TableColumn<>("Rating");
-        TableColumn<Book, Integer> nameCol = new TableColumn<>("Name");
+        TableColumn<Book, Integer> authorsCol = new TableColumn<>("Authors");
+        TableColumn<Book, String> addedByCol = new TableColumn<>("Added By");
 
-
-        booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol, genreCol, ratingCol,nameCol);
+        booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol, genreCol, ratingCol, authorsCol, addedByCol);
         titleCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.25));
         isbnCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.20));
         publishedCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
         genreCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
         ratingCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.10));
-        nameCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
+        authorsCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.15));
+        addedByCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.14));
         isbnCol.setMinWidth(140);
         ratingCol.setMinWidth(70);
 
@@ -92,7 +118,8 @@ public class BooksPane extends VBox {
         publishedCol.setCellValueFactory(new PropertyValueFactory<>("publishedDate"));
         genreCol.setCellValueFactory(new PropertyValueFactory<>("genresAsString"));
         ratingCol.setCellValueFactory(new PropertyValueFactory<>("averageRating"));
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("authorsAsString"));
+        authorsCol.setCellValueFactory(new PropertyValueFactory<>("authorsAsString"));
+        addedByCol.setCellValueFactory(new PropertyValueFactory<>("addedByUsername"));
 
         ratingCol.setCellFactory(column -> new TableCell<Book, Integer>() {
             @Override
@@ -108,19 +135,14 @@ public class BooksPane extends VBox {
 
         booksTable.setItems(booksInTable);
 
-        //välja en rad i tabellen och få upp detaljerad
+        // Välja en rad i tabellen och få upp detaljerad
         TableView.TableViewSelectionModel<Book> selectionModel = booksTable.getSelectionModel();
         selectionModel.setSelectionMode(SelectionMode.SINGLE);
         selectionModel.selectedItemProperty().addListener((obs, oldBook, newBook) -> {
-            if (newBook != null) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Authors");
-                alert.setHeaderText("Authors for: " + newBook.getTitle());
-                alert.setContentText(newBook.getAuthorsAsString());
-                alert.showAndWait();
+            if (newBook != null && controller != null) {
+                controller.showBookDetails(newBook);
             }
         });
-
     }
 
     private void initSearchView(BookDBController controller) {
@@ -131,7 +153,6 @@ public class BooksPane extends VBox {
         searchModeBox.setValue(SearchMode.Title);
         searchButton = new Button("Search");
 
-
         searchButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -140,19 +161,16 @@ public class BooksPane extends VBox {
                     double searchFor = Double.parseDouble(searchField.getText().trim());
                     controller.onSearchSelected(String.valueOf(searchFor), mode);
                     searchField.setPromptText("Search for...");
-
                 } else {
                     String searchFor = searchField.getText();
                     controller.onSearchSelected(searchFor, mode);
                     searchField.setPromptText("Search for...");
                 }
-
             }
         });
     }
 
     private void initMenus(BookDBController controller) {
-
         Menu fileMenu = new Menu("File");
         MenuItem connectItem = new MenuItem("Connect");
         MenuItem disconnectItem = new MenuItem("Disconnect");
@@ -165,29 +183,39 @@ public class BooksPane extends VBox {
         disconnectItem.setOnAction(event -> {
             controller.disconnect();
         });
-
         exitItem.setOnAction(event -> {
             Platform.exit();
-                });
+        });
 
         Menu manageMenu = new Menu("Manage");
-        MenuItem addItem = new MenuItem("Add");
-        addItem.setOnAction(event ->{
+
+        // VG: Spara referenser till menu items för att kunna aktivera/inaktivera dem
+        addMenuItem = new MenuItem("Add");
+        addMenuItem.setOnAction(event -> {
             controller.addBook();
         });
-        MenuItem removeItem = new MenuItem("Remove");
-        removeItem.setOnAction(event-> {
+
+        removeMenuItem = new MenuItem("Remove");
+        removeMenuItem.setOnAction(event -> {
             controller.removeBook();
         });
-        MenuItem updateItem = new MenuItem("Update");
-        manageMenu.getItems().addAll(addItem, removeItem, updateItem);
-        updateItem.setOnAction(event -> {
+
+        updateMenuItem = new MenuItem("Update Grade");
+        updateMenuItem.setOnAction(event -> {
             controller.updateGrade();
         });
+
+        reviewMenuItem = new MenuItem("Add Review");
+        reviewMenuItem.setOnAction(event -> {
+            controller.addReview();
+        });
+
+        manageMenu.getItems().addAll(addMenuItem, removeMenuItem, updateMenuItem,reviewMenuItem);
+
         menuBar = new MenuBar();
         menuBar.getMenus().addAll(fileMenu, manageMenu);
 
-        Menu helpMenu  = new Menu("Help");
+        Menu helpMenu = new Menu("Help");
         MenuItem aboutItem = new MenuItem("About");
         aboutItem.setOnAction(event -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -198,5 +226,83 @@ public class BooksPane extends VBox {
         });
         helpMenu.getItems().add(aboutItem);
         menuBar.getMenus().add(helpMenu);
+    }
+
+    //Skapa och returnera login-controls
+    private HBox setupLoginControls() {
+        // User status label
+        userStatusLabel = new Label("Not logged in");
+        userStatusLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        // Login button
+        loginButton = new Button("Login");
+        loginButton.setOnAction(e -> handleLoginButton());
+
+        // Lägg till i en HBox
+        HBox loginBox = new HBox(10);
+        loginBox.setPadding(new Insets(10));
+        loginBox.setAlignment(Pos.CENTER_LEFT);
+        loginBox.setStyle("-fx-background-color: #f0f0f0; -fx-border-color: #cccccc; -fx-border-width: 0 0 1 0;");
+        loginBox.getChildren().addAll(userStatusLabel, loginButton);
+
+        return loginBox;
+    }
+
+    // Hantera login/logout-knappen
+    private void handleLoginButton() {
+        if (controller.isLoggedIn()) {
+            // Logga ut
+            controller.logout();
+        } else {
+            // Visa login-dialog
+            controller.showLogin();
+        }
+    }
+
+    /**
+     * VG: Uppdatera login-status i GUI (anropas från Controller)
+     */
+    public void updateLoginStatus(User user) {
+        if (user != null) {
+            userStatusLabel.setText("Login as: " + user.getUsername());
+            loginButton.setText("Logout");
+            enableLoggedInFeatures();
+        } else {
+            userStatusLabel.setText("Not logged in");
+            loginButton.setText("Login");
+            disableLoggedInFeatures();
+        }
+    }
+
+    // Aktivera funktioner som kräver inloggning
+    private void enableLoggedInFeatures() {
+        if (addMenuItem != null) {
+            addMenuItem.setDisable(false);
+        }
+        if (removeMenuItem != null) {
+            removeMenuItem.setDisable(false);
+        }
+        if (updateMenuItem != null) {
+            updateMenuItem.setDisable(false);
+        }
+        if (reviewMenuItem != null) {
+            reviewMenuItem.setDisable(false);
+        }
+    }
+
+    //login
+    private void disableLoggedInFeatures() {
+        if (addMenuItem != null) {
+            addMenuItem.setDisable(true);
+        }
+        if (removeMenuItem != null) {
+            removeMenuItem.setDisable(true);
+        }
+        if (updateMenuItem != null) {
+            updateMenuItem.setDisable(true);
+        }
+        if (reviewMenuItem != null) {
+            reviewMenuItem.setDisable(true);
+        }
     }
 }

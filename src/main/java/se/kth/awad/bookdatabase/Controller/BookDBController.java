@@ -1,13 +1,10 @@
 package se.kth.awad.bookdatabase.Controller;
 
-import se.kth.awad.bookdatabase.model.Book;
-import se.kth.awad.bookdatabase.model.BooksDbException;
-import se.kth.awad.bookdatabase.model.BooksDbInterface;
-import se.kth.awad.bookdatabase.model.SearchMode;
-import se.kth.awad.bookdatabase.view.AddBookDialog;
-import se.kth.awad.bookdatabase.view.BooksPane;
-import se.kth.awad.bookdatabase.view.RemoveBookDialog;
-import se.kth.awad.bookdatabase.view.UpdateGradeDialog;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import se.kth.awad.bookdatabase.model.*;
+import se.kth.awad.bookdatabase.view.*;
+
 import java.util.ArrayList;
 import javafx.concurrent.Task;
 import java.util.List;
@@ -22,6 +19,7 @@ public class BookDBController {
 
     private final BooksPane booksView;
     private final BooksDbInterface booksDb;
+    private User currentUser = null;
 
     public BookDBController(BooksDbInterface booksDb, BooksPane booksView) {
         this.booksDb = booksDb;
@@ -115,14 +113,14 @@ public class BookDBController {
         });
         //misslyckas ! då visa fel
         task.setOnFailed(e->{
-            Throwable ex = task.getException();
-            booksView.showAlertAndWait("Database error: " + ex.getMessage(), ERROR);
-            ex.printStackTrace();
+            Throwable exception = task.getException();
+            booksView.showAlertAndWait("Database error: " + exception.getMessage(), ERROR);
+            exception.printStackTrace();
         });
         //starta tråden för att inte frysa ui
-        Thread thr = new Thread(task);
-        thr.setDaemon(true);
-        thr.start();
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     // Visa dialog och lägg till ny bok.
@@ -138,7 +136,21 @@ public class BookDBController {
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
-                booksDb.insertBook(book);
+                List<Integer> authorIDs = new ArrayList<>();
+                if (book.getAuthors() != null) {
+                    for (Author author : book.getAuthors()) {
+                        authorIDs.add(author.getAuthorID());
+                    }
+                }
+                // Extrahera genre-namn
+                List<String> genreNames = new ArrayList<>();
+                if (book.getGenres() != null) {
+                    for (Genre genre : book.getGenres()) {
+                        genreNames.add(genre.getGenreName());
+                    }
+                }
+                // VG: Använd insertBookAsUser
+                booksDb.insertBookAsUser(book, authorIDs, genreNames, currentUser.getUserID());
                 return null;
             }
         };
@@ -153,14 +165,14 @@ public class BookDBController {
         });
 
         task.setOnFailed(e -> {
-            Throwable ex = task.getException();
-            booksView.showAlertAndWait("Error adding book: " + ex.getMessage(), ERROR);
-            ex.printStackTrace();
+            Throwable exception = task.getException();
+            booksView.showAlertAndWait("Error adding book: " + exception.getMessage(), ERROR);
+            exception.printStackTrace();
         });
 
-        Thread thr = new Thread(task);
-        thr.setDaemon(true);
-        thr.start();
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     //Visa dialog och ta bort bok.
@@ -183,23 +195,18 @@ public class BookDBController {
                 }
                 Book book = books.get(0);
                 booksDb.deleteBook(book);
-
                 return null;
             }
         };
-
         task.setOnSucceeded(e -> {
             try{
                 refreshBookList();
                 booksView.showAlertAndWait("Book '" + title + "' deleted successfully", CONFIRMATION);
-
-
             }catch(BooksDbException ex) {
                 booksView.showAlertAndWait("Error refreshing list: "+ ex.getMessage(), ERROR);
                 ex.printStackTrace();
             }
         });
-
         task.setOnFailed(e->{
             Throwable ex = task.getException();
             if (ex instanceof BooksDbException) {
@@ -209,10 +216,9 @@ public class BookDBController {
             }
         });
 
-        Thread thr = new Thread(task);
-        thr.setDaemon(true);
-        thr.start();
-
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
     //Visa dialog och lägg till betyg på bok.
     public void updateGrade() {
@@ -242,7 +248,16 @@ public class BookDBController {
                     throw new BooksDbException("No book found with title: " + trimmedTitle);
                 }
                 Book book = books.get(0);
-                booksDb.addRating(book.getBookID(), newGrade);
+
+
+                // Kolla om användaren redan betygsatt
+                if (booksDb.hasUserRatedBook(book.getBookID(), currentUser.getUserID())) {
+                    throw new BooksDbException(
+                            "You have already rated this book! You can only give one rating per book."
+                    );
+                }
+                booksDb.rateBookAsUser(book.getBookID(), currentUser.getUserID(), newGrade);
+
                 return null;
             }
         };
@@ -265,29 +280,189 @@ public class BookDBController {
         });
 
         task.setOnFailed(e->{
-            Throwable ex = task.getException();
-            if (ex instanceof BooksDbException) {
-                booksView.showAlertAndWait(ex.getMessage(), WARNING);
+            Throwable exception = task.getException();
+            if (exception instanceof BooksDbException) {
+                booksView.showAlertAndWait(exception.getMessage(), WARNING);
             } else {
                 booksView.showAlertAndWait(
-                        "Error updating grade: " + ex.getMessage(),
+                        "Error updating grade: " + exception.getMessage(),
                         ERROR
                 );
             }
-            ex.printStackTrace();
+            exception.printStackTrace();
         });
 
-        Thread thr = new Thread(task);
-        thr.setDaemon(true);
-        thr.start();
-
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 
-    /**
-     * Hjälpmetod för att ladda om alla böcker från databasen.
-     */
+     // Hjälpmetod för att ladda om alla böcker från databasen.
     private void refreshBookList() throws BooksDbException {
         List<Book> books = booksDb.retrieveBookTable();
         booksView.displayBooks(books);
+    }
+
+     // Visa login-dialog
+    public void showLogin() {
+        LoginDialog dialog = new LoginDialog(booksDb);
+
+        Optional<User> result = dialog.showAndWait();
+        result.ifPresent(user -> {
+            currentUser = user;
+            booksView.updateLoginStatus(user);
+            booksView.showAlertAndWait("Welcome " + user.getUsername() + "!", INFORMATION);
+        });
+    }
+
+     // Logga ut användaren
+    public void logout() {
+        if (currentUser != null) {
+            String username = currentUser.getUsername();
+            currentUser = null;
+            booksView.updateLoginStatus(null);
+            booksView.showAlertAndWait("You have logged out, " + username + "!", INFORMATION);
+        }
+    }
+
+     // Hämta aktuell användare
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    // Kolla om användare är inloggad
+    public boolean isLoggedIn() {
+        return currentUser != null;
+    }
+
+    // Lägg till recension för en bok
+    public void addReview() {
+        // Validera inloggning
+        if (!isLoggedIn()) {
+            booksView.showAlertAndWait("You must be logged in to write reviews!", WARNING);
+            return;
+        }
+
+        ReviewDialog dialog = new ReviewDialog();
+        Optional<String> result = dialog.showAndWait();
+
+        if (result.isEmpty()) {
+            booksView.showAlertAndWait("Review canceled", INFORMATION);
+            return;
+        }
+
+        String bookTitle = dialog.getBookTitle();
+        String reviewText = result.get();
+
+        Task<Void> task = new Task<Void>() {
+            @Override
+            protected Void call() throws Exception {
+                // Hitta boken
+                List<Book> books = booksDb.searchBooksByTitle(bookTitle);
+                if (books.isEmpty()) {
+                    throw new BooksDbException("No book found with the title: " + bookTitle);
+                }
+
+                Book book = books.get(0);
+
+                // Lägg till recension
+                booksDb.addReview(book.getBookID(), currentUser.getUserID(), reviewText);
+                return null;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            booksView.showAlertAndWait(
+                    "Review for '" + bookTitle + "' has been added!",
+                    CONFIRMATION
+            );
+        });
+
+        task.setOnFailed(e -> {
+            Throwable exception = task.getException();
+            if (exception instanceof BooksDbException) {
+                booksView.showAlertAndWait(exception.getMessage(), WARNING);
+            } else {
+                booksView.showAlertAndWait(
+                        "Error adding review: " + exception.getMessage(),
+                        ERROR
+                );
+            }
+            exception.printStackTrace();
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    /**
+     * Visa detaljer om en bok inkl. författare och recensioner
+     */
+    public void showBookDetails(Book book) {
+        Task<List<Review>> task = new Task<List<Review>>() {
+            @Override
+            protected List<Review> call() throws Exception {
+                return booksDb.getReviewsForBook(book.getBookID());
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            List<Review> reviews = task.getValue();
+
+            StringBuilder content = new StringBuilder();
+
+            // VG: Visa vem som lade till boken
+            content.append("ADDED BY:\n");
+            if (book.getAddedByUsername() != null) {
+                content.append(book.getAddedByUsername());
+            } else if (book.getAddedByUserID() > 0) {
+                content.append("User ID: ").append(book.getAddedByUserID());
+            } else {
+                content.append("Unknown user");
+            }
+            content.append("\n\n");
+
+            // Författare
+            content.append("AUTHORS:\n");
+            content.append(book.getAuthorsAsString());
+            content.append("\n\n");
+
+            // Recensioner
+            content.append("RECENSIONER:\n");
+            if (reviews.isEmpty()) {
+                content.append("No reviews yet. Be the first to review!");
+            } else {
+                for (Review review : reviews) {
+                    content.append("─────────────────────\n");
+                    content.append(review.getUser().getUsername());
+                    content.append(" (").append(review.getReviewDate()).append("):\n");
+                    content.append(review.getReviewText());
+                    content.append("\n\n");
+                }
+            }
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Book details");
+            alert.setHeaderText(book.getTitle());
+            alert.setContentText(content.toString());
+
+            alert.getDialogPane().setPrefWidth(600);
+            alert.getDialogPane().setPrefHeight(400);
+
+            alert.showAndWait();
+        });
+
+        task.setOnFailed(e -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Authors");
+            alert.setHeaderText("Authors for: " + book.getTitle());
+            alert.setContentText(book.getAuthorsAsString());
+            alert.showAndWait();
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 }

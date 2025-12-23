@@ -1,22 +1,25 @@
 package se.kth.awad.bookdatabase.model;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 /**
- *  JDBC-implementation av BooksDbInterface.
- *  Denna klass kommunicerar direkt med LibraryDB i MySQL.
+ * JDBC-implementation av BooksDbInterface.
+ * Denna klass kommunicerar direkt med LibraryDB i MySQL.
  */
 public class BooksDb implements BooksDbInterface {
 
-    //skapa konstanter för den gemensamma SQL-frågan
+    //skapa konstanter för den gemensamma SQL-frågor
     private static final String BASE_BOOK_QUERY =
             "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
+                    "B.addedByUserID, U.username AS addedByUsername, " +
                     "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
                     "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "MAX(R.ratingValue) AS averageRating, " +
-                    "CASE WHEN MAX(R.ratingID) IS NOT NULL THEN 1 ELSE 0 END AS numRatings " +
+                    "AVG(R.ratingValue) AS averageRating, " +
+                    "COUNT(DISTINCT R.ratingID) AS numRatings " +
                     "FROM T_Book AS B " +
+                    "LEFT JOIN T_User AS U ON B.addedByUserID = U.userID " +
                     "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
                     "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
                     "LEFT JOIN T_Book_Genre AS BG ON B.bookID = BG.bookID " +
@@ -24,7 +27,7 @@ public class BooksDb implements BooksDbInterface {
                     "LEFT JOIN T_Rating AS R ON B.bookID = R.bookID ";
 
     private static final String GROUP_BY_CLAUSE =
-            "GROUP BY B.bookID, B.ISBN, B.title, B.publishedDate";
+            "GROUP BY B.bookID, B.ISBN, B.title, B.publishedDate, B.addedByUserID, U.username";
 
     private final DatabaseConnection dbConnection;
 
@@ -204,15 +207,15 @@ public class BooksDb implements BooksDbInterface {
             }
 
             connection.commit();
-            System.out.println("[BooksDb] ✓ Book inserted successfully with ID: " + bookID);
+            System.out.println("[BooksDb] Book inserted successfully with ID: " + bookID);
 
         } catch (SQLException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] ✗ Rollback - Error inserting book");
+                    System.out.println("[BooksDb] Rollback - Error inserting book");
                 } catch (SQLException rollbackEx) {
-                    // Logga men generera ursprungligt undantag
+                    throw new BooksDbException("Rollback failed", rollbackEx);
                 }
             }
             throw new BooksDbException("Error inserting book: " + e.getMessage(), e);
@@ -221,7 +224,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    // Logga men fortsätt
+                    e.printStackTrace();
                 }
             }
         }
@@ -247,15 +250,15 @@ public class BooksDb implements BooksDbInterface {
             }
 
             connection.commit();
-            System.out.println("[BooksDb] ✓ Book deleted successfully (ID: " + book.getBookID() + ")");
+            System.out.println("[BooksDb] Book deleted successfully (ID: " + book.getBookID() + ")");
 
         } catch (SQLException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] ✗ Rollback - Error deleting book");
+                    System.out.println("[BooksDb] Rollback - Error deleting book");
                 } catch (SQLException rollbackEx) {
-                    // Logga men generera ursprungligt undantag
+                    throw new BooksDbException("Rollback failed", rollbackEx);
                 }
             }
             throw new BooksDbException("Failed to delete book: " + e.getMessage(), e);
@@ -264,7 +267,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    // Logga men fortsätt
+                    e.printStackTrace();
                 }
             }
         }
@@ -291,15 +294,15 @@ public class BooksDb implements BooksDbInterface {
             }
 
             connection.commit();
-            System.out.println("[BooksDb] ✓ Book updated successfully (ID: " + book.getBookID() + ")");
+            System.out.println("[BooksDb] Book updated successfully (ID: " + book.getBookID() + ")");
 
         } catch (SQLException e) {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] ✗ Rollback - Error updating book");
+                    System.out.println("[BooksDb] Rollback - Error updating book");
                 } catch (SQLException rollbackEx) {
-                    // Logga men generera ursprungligt undantag
+                    throw new BooksDbException("Rollback failed", rollbackEx);
                 }
             }
             throw new BooksDbException("Error updating book: " + e.getMessage(), e);
@@ -308,7 +311,7 @@ public class BooksDb implements BooksDbInterface {
                 try {
                     connection.setAutoCommit(true);
                 } catch (SQLException e) {
-                    // Logga men fortsätt
+                    e.printStackTrace();
                 }
             }
         }
@@ -341,11 +344,11 @@ public class BooksDb implements BooksDbInterface {
                 int rowsAffected = pstmt.executeUpdate();
                 if (rowsAffected > 0) {
                     connection.commit();
-                    System.out.println("[BooksDb] ✓ Rating updated (replaced previous rating)");
+                    System.out.println("[BooksDb] Rating updated (replaced previous rating)");
                     return true;
                 } else {
                     connection.rollback();
-                    System.out.println("[BooksDb] ✗ No rating added");
+                    System.out.println("[BooksDb] No rating added");
                     return false;
                 }
             }
@@ -354,7 +357,7 @@ public class BooksDb implements BooksDbInterface {
             if (connection != null) {
                 try {
                     connection.rollback();
-                    System.out.println("[BooksDb] ✗ Rollback - Error adding rating");
+                    System.out.println("[BooksDb] Rollback - Error adding rating");
                 } catch (SQLException rollbackEx) {
                     throw new BooksDbException("Failed to rollback transaction", rollbackEx);
                 }
@@ -370,6 +373,7 @@ public class BooksDb implements BooksDbInterface {
             }
         }
     }
+
     //privata hjälp metoder
     private int insertBookRecord(Connection con, Book book) throws SQLException {
         String sql = "INSERT INTO T_Book (ISBN, title, publishedDate) VALUES (?, ?, ?)";
@@ -520,6 +524,16 @@ public class BooksDb implements BooksDbInterface {
 
         Book book = new Book(bookID, ISBN, title, publishedDate);
 
+
+        int addedByUserID = rs.getInt("addedByUserID");
+        if (!rs.wasNull()) {
+            book.setAddedByUserID(addedByUserID);
+            String addedByUsername = rs.getString("addedByUsername");
+            if (addedByUsername != null) {
+                book.setAddedByUsername(addedByUsername);  // ← NY RAD!
+            }
+        }
+
         // Hämta det unika betyget (inte genomsnitt)
         int rating = rs.getInt("averageRating");
         if (!rs.wasNull()) {
@@ -544,6 +558,7 @@ public class BooksDb implements BooksDbInterface {
 
         return book;
     }
+
     /**
      * Bygger ett Author-objekt från den aktuella ResultSet-raden.
      */
@@ -642,6 +657,313 @@ public class BooksDb implements BooksDbInterface {
 
         } catch (SQLException e) {
             throw new BooksDbException("Error getting genres for book: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public User login(String username, String password) throws BooksDbException {
+        String sql = "SELECT userID, username FROM T_User " +
+                "WHERE username = ? AND password = ?";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    int userID = rs.getInt("userID");
+                    String user = rs.getString("username");
+                    return new User(userID, user);
+                } else {
+                    throw new BooksDbException("Fel användarnamn eller lösenord");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BooksDbException("Databasfel vid inloggning: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void createUser(String username, String password) throws BooksDbException {
+        String sql = "INSERT INTO T_User (username, password) VALUES (?,?)";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new BooksDbException("Kunde inte skapa användare");
+            }
+        } catch (SQLException e) {
+            if (e.getMessage().contains("Duplicate entry")) {
+                throw new BooksDbException("Användarnamnet '" + username + "' är redan taget");
+            }
+            throw new BooksDbException("Databasfel: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void rateBookAsUser(int bookID, int userID, int ratingValue) throws BooksDbException {
+        // Validering
+        if (ratingValue < 1 || ratingValue > 10) {
+            throw new BooksDbException("Betyg måste vara mellan 1 och 10");
+        }
+
+        String sql = "INSERT INTO T_Rating (bookID, userID, ratingValue, ratingDate) " +
+                "VALUES (?, ?, ?, CURDATE())";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, bookID);
+            pstmt.setInt(2, userID);
+            pstmt.setInt(3, ratingValue);
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            if (e.getMessage().contains("Duplicate entry") ||
+                    e.getMessage().contains("unique_user_book_rating")) {
+                throw new BooksDbException(
+                        "Du har redan betygsatt denna bok! Endast ett betyg per användare tillåts."
+                );
+            }
+            throw new BooksDbException("Databasfel vid betygsättning: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean hasUserRatedBook(int bookID, int userID) throws BooksDbException {
+        String sql = "SELECT COUNT(*) AS count FROM T_Rating WHERE bookID = ? AND userID = ?";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, bookID);
+            pstmt.setInt(2, userID);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count") > 0;
+                }
+                return false;
+            }
+        } catch (SQLException e) {
+            throw new BooksDbException("Databasfel: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void addReview(int bookID, int userID, String reviewText) throws BooksDbException {
+        if (reviewText == null || reviewText.trim().isEmpty()) {
+            throw new BooksDbException("Recensionen kan inte vara tom");
+        }
+
+        String sql = "INSERT INTO T_Review (bookID, userID, reviewText, reviewDate) " +
+                "VALUES (?, ?, ?, CURDATE())";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, bookID);
+            pstmt.setInt(2, userID);
+            pstmt.setString(3, reviewText.trim());
+
+            int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new BooksDbException("Kunde inte lägga till recension");
+            }
+        } catch (SQLException e) {
+            throw new BooksDbException("Databasfel: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<Review> getReviewsForBook(int bookID) throws BooksDbException {
+        List<Review> reviews = new ArrayList<>();
+
+        String sql = "SELECT r.reviewID, r.bookID, r.reviewText, r.reviewDate, " +
+                "       u.userID, u.username " +
+                "FROM T_Review r " +
+                "JOIN T_User u ON r.userID = u.userID " +
+                "WHERE r.bookID = ? " +
+                "ORDER BY r.reviewDate DESC";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql)) {
+            pstmt.setInt(1, bookID);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    int reviewID = rs.getInt("reviewID");
+                    int book = rs.getInt("bookID");
+                    String text = rs.getString("reviewText");
+                    LocalDate date = rs.getDate("reviewDate").toLocalDate();
+
+                    // Skapa User-objekt för recensenten
+                    int userId = rs.getInt("userID");
+                    String username = rs.getString("username");
+                    User user = new User(userId, username);
+
+                    // Skapa Review-objekt
+                    Review review = new Review(reviewID, book, user, text, date);
+                    reviews.add(review);
+                }
+            }
+        } catch (SQLException e) {
+            throw new BooksDbException("Databasfel: " + e.getMessage(), e);
+        }
+
+        return reviews;
+    }
+
+    @Override
+    public void insertBookAsUser(Book book, List<Integer> authorIDs,
+                                 List<String> genreNames, int userID)
+            throws BooksDbException {
+        Connection connection = null;
+        try {
+            connection = dbConnection.getConnection();
+            connection.setAutoCommit(false);
+
+            // Lägg till boken MED userID
+            int bookID = insertBookRecordWithUser(connection, book, userID);
+            book.setBookID(bookID);
+
+            // Koppla författare
+            if (authorIDs != null && !authorIDs.isEmpty()) {
+                for (int authorID : authorIDs) {
+                    linkBookAuthor(connection, bookID, authorID);
+                }
+            }
+
+            // Koppla genrer
+            if (genreNames != null && !genreNames.isEmpty()) {
+                for (String genreName : genreNames) {
+                    Genre genre = new Genre(genreName);
+                    int genreID = getOrCreateGenre(connection, genre);
+                    linkBookGenre(connection, bookID, genreID);
+                }
+            }
+
+            connection.commit();
+
+        } catch (SQLException e) {
+            if (connection != null) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackEx) {
+                    throw new BooksDbException("Rollback misslyckades: " + rollbackEx.getMessage());
+                }
+            }
+            throw new BooksDbException("Kunde inte lägga till bok: " + e.getMessage(), e);
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.setAutoCommit(true);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void insertAuthorAsUser(Author author, int userID) throws BooksDbException {
+        String sql = "INSERT INTO T_Author (name, birthDate, addedByUserID) VALUES (?, ?, ?)";
+
+        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql,
+                Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, author.getName());
+
+            if (author.getBirthDate() != null) {
+                pstmt.setDate(2, author.getBirthDate());
+            } else {
+                pstmt.setNull(2, java.sql.Types.DATE);
+            }
+
+            pstmt.setInt(3, userID);
+
+            pstmt.executeUpdate();
+
+            // Sätt authorID på objektet
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    author.setAuthorID(rs.getInt(1));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new BooksDbException("Kunde inte lägga till författare: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * VG Helper: Lägger till bokpost med användarID
+     */
+    private int insertBookRecordWithUser(Connection con, Book book, int userID) throws SQLException {
+        String sql = "INSERT INTO T_Book (ISBN, title, publishedDate, addedByUserID) " +
+                "VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, book.getISBN());
+            pstmt.setString(2, book.getTitle());
+            pstmt.setDate(3, book.getPublishedDate());
+            pstmt.setInt(4, userID);
+
+            pstmt.executeUpdate();
+
+            try (ResultSet keys = pstmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
+                }
+                throw new SQLException("Failed to get generated book ID");
+            }
+        }
+    }
+
+    @Override
+    public void deleteBookAsUser(int bookID, int userID) throws BooksDbException {
+        Connection connection = null;
+        try {
+            connection = dbConnection.getConnection();
+            connection.setAutoCommit(false);
+
+            // Hämta författar-IDn direkt här
+            List<Integer> authorIDs = new ArrayList<>();
+            String getAuthorsSql = "SELECT authorID FROM T_Book_Author WHERE bookID = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(getAuthorsSql)) {
+                pstmt.setInt(1, bookID);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        authorIDs.add(rs.getInt("authorID"));
+                    }
+                }
+            }
+            // Ta bort boken (CASCADE tar bort kopplingar automatiskt)
+            deleteBookRecord(connection, bookID);
+
+            // Ta bort "orphaned" författare
+            for (int authorID : authorIDs) {
+                deleteAuthorIfOrphaned(connection, authorID);
+            }
+
+            // userID används för logging/audit (kan sparas i audit-tabell om man vill)
+            System.out.println("[AUDIT] Book " + bookID + " deleted by user " + userID);
+
+            connection.commit();
+
+        } catch (SQLException e) {
+            if (connection != null) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackEx) {
+                    throw new BooksDbException("Rollback misslyckades: " + rollbackEx.getMessage());
+                }
+            }
+            throw new BooksDbException("Kunde inte ta bort bok: " + e.getMessage(), e);
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.setAutoCommit(true);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

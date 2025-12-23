@@ -5,21 +5,28 @@ import java.time.LocalDate;
 public class Review {
     private int reviewID;
     private int bookID;
-    private int userID;
+    private User user;
     private String reviewText;
     private LocalDate reviewDate;
 
-
-    public Review(int reviewID, int bookID, int userID, String reviewText, LocalDate reviewDate){
+    // Huvudkonstruktor (när man hämtar från databas)
+    public Review(int reviewID, int bookID, User user,
+                  String reviewText, LocalDate reviewDate) {
         this.reviewID = reviewID;
         this.bookID = bookID;
-        this.userID = userID;
+        this.user = user;
         this.reviewText = reviewText;
         this.reviewDate = reviewDate;
     }
 
-    public Review(int bookID, int userID, String reviewText, LocalDate reviewDate){
-        this(-1,bookID,userID,reviewText,reviewDate);
+    // Konstruktor för ny recension (utan ID)
+    public Review(int bookID, User user, String reviewText, LocalDate reviewDate) {
+        this(-1, bookID, user, reviewText, reviewDate);
+    }
+
+    // Konstruktor för ny recension (dagens datum)
+    public Review(int bookID, User user, String reviewText) {
+        this(-1, bookID, user, reviewText, LocalDate.now());
     }
 
     public int getReviewID(){
@@ -30,8 +37,8 @@ public class Review {
         return bookID;
     }
 
-    public int getUserID(){
-        return userID;
+    public User getUser(){
+        return user;
     }
 
     public String getReviewText(){
@@ -42,19 +49,13 @@ public class Review {
         return reviewDate;
     }
 
-    public void  setReviewID(int reviewID){
+    public void setReviewID(int reviewID){
         this.reviewID = reviewID;
     }
 
     @Override
     public String toString() {
-        return "Review{" +
-                "reviewID=" + reviewID +
-                ", bookID=" + bookID +
-                ", userID=" + userID +
-                ", reviewText='" + reviewText + '\'' +
-                ", reviewDate=" + reviewDate +
-                '}';
+        return reviewText + "\n" + "- " + user.getUsername() + ", " + reviewDate;
     }
 
 }

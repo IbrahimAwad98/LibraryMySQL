@@ -5,16 +5,14 @@ import java.util.Objects;
 public class User {
     private int userID;
     private String username;
-    private String password;
 
-    public User(int userID, String username, String password){
+    public User(int userID, String username){
         this.userID = userID;
         this.username = username;
-        this.password = password;
     }
     // Konstruktor för att skapa ny user (utan ID)
     public User(String username, String password){
-        this(-1, username, password);
+        this(-1, username);
     }
 
     public User(String username){
@@ -27,10 +25,6 @@ public class User {
 
     public String getUsername(){
         return username;
-    }
-
-    public String getPassword(){
-        return password;
     }
 
     public void setUserID(int userID){

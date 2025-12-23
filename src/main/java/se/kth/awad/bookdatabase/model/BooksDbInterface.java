@@ -31,7 +31,6 @@ public interface BooksDbInterface {
      */
     List<Book> retrieveBookTable() throws BooksDbException;
 
-    // Sökning metoder
     /**
      * Söker efter böcker efter titel.
      * @param searchTitle titeln att söka efter
@@ -64,7 +63,14 @@ public interface BooksDbInterface {
      */
     List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException;
 
-    //Create, Read, Update, Delete
+    /**
+     * Söker efter böcker efter minimum rating/betyg.
+     * @param minRating minimibetyget
+     * @return lista över matchande böcker
+     * @throws BooksDbException om sökningen misslyckas
+     */
+    List<Book> searchBooksByRating(int minRating) throws BooksDbException;
+
     /**
      * Lägger till en ny bok i databasen.
      * @param book boken att lägga till
@@ -85,17 +91,6 @@ public interface BooksDbInterface {
      * @throws BooksDbException om uppdateringen misslyckas
      */
     void updateBook(Book book) throws BooksDbException;
-
-    // TODO: Följande metoder är definierade i interfacet men inte implementerade ännu
-    // De kan implementeras i framtiden för utökad funktionalitet
-
-    /**
-     * Söker efter böcker efter minimum rating/betyg.
-     * @param minRating minimibetyget
-     * @return lista över matchande böcker
-     * @throws BooksDbException om sökningen misslyckas
-     */
-    List<Book> searchBooksByRating(int minRating) throws BooksDbException;
 
     /**
      * Lägger till ett betyg för en bok.
@@ -135,4 +130,85 @@ public interface BooksDbInterface {
      * @throws BooksDbException om hämtningen misslyckas
      */
     List<Genre> getGenresForBook(int bookID) throws BooksDbException;
+
+
+    /**
+     * Loggar in en användare med användarnamn och lösenord.
+     * @param username användarnamnet
+     * @param password lösenordet (hashas automatiskt i SQL)
+     * @return User-objekt om inloggningen lyckas
+     * @throws BooksDbException om fel användarnamn/lösenord eller databasfel
+     */
+    User login(String username, String password) throws BooksDbException;
+
+    /**
+     * Skapar en ny användare i systemet.
+     * @param username användarnamnet (måste vara unikt)
+     * @param password lösenordet (hashas automatiskt i SQL)
+     * @throws BooksDbException om användarnamnet redan finns eller databasfel
+     */
+    void createUser(String username, String password) throws BooksDbException;
+
+    /**
+     * Betygsätter en bok som en specifik användare.
+     * En användare kan endast ge ETT betyg per bok.
+     * @param bookID bokens ID
+     * @param userID användarens ID
+     * @param ratingValue betygsvärdet (1-10)
+     * @throws BooksDbException om användaren redan betygsatt boken eller databasfel
+     */
+    void rateBookAsUser(int bookID, int userID, int ratingValue) throws BooksDbException;
+
+    /**
+     * Kontrollerar om en användare redan har betygsatt en bok.
+     * Användbart för att visa/dölja betygsättningsknappar i GUI.
+     * @param bookID bokens ID
+     * @param userID användarens ID
+     * @return true om användaren redan har betygsatt boken, annars false
+     * @throws BooksDbException om databasfel
+     */
+    boolean hasUserRatedBook(int bookID, int userID) throws BooksDbException;
+
+    /**
+     * Lägger till en recension för en bok.
+     * @param bookID bokens ID
+     * @param userID användarens ID (vem som skriver recensionen)
+     * @param reviewText recensionstexten
+     * @throws BooksDbException om recensionen är tom eller databasfel
+     */
+    void addReview(int bookID, int userID, String reviewText) throws BooksDbException;
+
+    /**
+     * Hämtar alla recensioner för en specifik bok.
+     * @param bookID bokens ID
+     * @return lista med recensioner (tom lista om inga recensioner finns)
+     * @throws BooksDbException om databasfel
+     */
+    List<Review> getReviewsForBook(int bookID) throws BooksDbException;
+
+    /**
+     * Lägger till en ny bok med spårning av vem som lade till den.
+     * @param book boken att lägga till
+     * @param authorIDs lista med författar-ID:n
+     * @param genreNames lista med genrenamn
+     * @param userID användarens ID (vem som lägger till boken)
+     * @throws BooksDbException om insättningen misslyckas
+     */
+    void insertBookAsUser(Book book, List<Integer> authorIDs, List<String> genreNames, int userID) throws BooksDbException;
+
+    /**
+     * Lägger till en ny författare med spårning av vem som lade till.
+     * @param author författaren att lägga till
+     * @param userID användarens ID (vem som lägger till författaren)
+     * @throws BooksDbException om insättningen misslyckas
+     */
+    void insertAuthorAsUser(Author author, int userID) throws BooksDbException;
+
+    /**
+     * Tar bort en bok (kräver inloggad användare).
+     * @param bookID bokens ID
+     * @param userID användarens ID (för logging/audit)
+     * @throws BooksDbException om borttagningen misslyckas
+     */
+    void deleteBookAsUser(int bookID, int userID) throws BooksDbException;
 }

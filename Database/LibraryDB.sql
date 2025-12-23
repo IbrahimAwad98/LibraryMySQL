@@ -22,7 +22,7 @@ CREATE TABLE T_Author(
     authorID INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     birthDate DATE,
-    addedByUserID INT,  -- LÄGG TILL DIREKT HÄR
+    addedByUserID INT NOT NULL,  -- LÄGG TILL DIREKT HÄR
     FOREIGN KEY (addedByUserID) REFERENCES T_User(userID)
 );
 
@@ -36,7 +36,7 @@ CREATE TABLE T_Book(
     ISBN VARCHAR(13) UNIQUE NOT NULL,
     title VARCHAR(200) NOT NULL,
     publishedDate DATE,
-    addedByUserID INT,  
+    addedByUserID INT NOT NULL,
     FOREIGN KEY (addedByUserID) REFERENCES T_User(userID)
 );
 
@@ -85,12 +85,12 @@ INSERT INTO T_User (username, password) VALUES
 ('bob', 'bob123');
 
 -- fyll i data
-INSERT INTO T_Author (name, birthDate) VALUES
-('Miguel de Cervantes', '1547-09-29'),
-('Charles Dickens', '1812-02-07'),
-('J.R.R. Tolkien', '1892-01-03'),
-('Antoine de Saint-Exupéry', '1900-06-29'),
-('J.K. Rowling', '1965-07-31');
+INSERT INTO T_Author (name, birthDate, addedByUserID) VALUES
+('Miguel de Cervantes', '1547-09-29', 1),
+('Charles Dickens', '1812-02-07', 2),
+('J.R.R. Tolkien', '1892-01-03', 3),
+('Antoine de Saint-Exupéry', '1900-06-29', 4),
+('J.K. Rowling', '1965-07-31', 1);
 
 INSERT INTO T_Genre (genreName) VALUES
 ('Fantasy'),          
@@ -101,12 +101,12 @@ INSERT INTO T_Genre (genreName) VALUES
 ('Young Adult'),
 ('Drama');
 
-INSERT INTO T_Book (ISBN, title, publishedDate) VALUES
-('9780060934347', 'Don Quixote', '1605-01-16'),
-('9780486406510', 'A Tale of Two Cities', '1859-04-30'),
-('9780618640157', 'The Lord of the Rings', '1954-07-29'),
-('9780156012195', 'The Little Prince', '1943-04-06'),
-('9780439708180', 'Harry Potter and the Philosopher''s Stone', '1997-06-26');
+INSERT INTO T_Book (ISBN, title, publishedDate, addedByUserID) VALUES
+('9780060934347', 'Don Quixote', '1605-01-16',2 ),
+('9780486406510', 'A Tale of Two Cities', '1859-04-30', 2),
+('9780618640157', 'The Lord of the Rings', '1954-07-29', 2),
+('9780156012195', 'The Little Prince', '1943-04-06', 2),
+('9780439708180', 'Harry Potter and the Philosopher''s Stone', '1997-06-26', 2);
 
 INSERT INTO T_Book_Author (bookID, authorID) VALUES
 (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);

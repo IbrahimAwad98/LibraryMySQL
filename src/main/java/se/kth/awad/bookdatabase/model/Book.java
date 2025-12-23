@@ -24,6 +24,8 @@ public class Book {
     //VG attribut
     private int addedBy;
     private ArrayList<Review> reviews;
+    private int addedByUserID;
+    private String addedByUsername;
 
 
     // Konstruktor för att läsa från databasen (med ID).
@@ -76,6 +78,14 @@ public class Book {
 
     public Date getPublishedDate(){
         return publishedDate;
+    }
+
+    public int getAddedByUserID(){
+        return addedByUserID;
+    }
+
+    public String getAddedByUsername() {
+        return addedByUsername;
     }
 
     /**
@@ -146,6 +156,14 @@ public class Book {
 
     public void setReviews(ArrayList<Review> newReviews){
         this.reviews = newReviews;
+    }
+
+    public void setAddedByUserID(int addedByUserID) {
+        this.addedByUserID = addedByUserID;
+    }
+
+    public void setAddedByUsername(String addedByUsername) {
+        this.addedByUsername = addedByUsername;
     }
 
     // Metoder
@@ -278,4 +296,5 @@ public class Book {
                 ", genres=" + genres.size() +
                 '}';
     }
+
 }
