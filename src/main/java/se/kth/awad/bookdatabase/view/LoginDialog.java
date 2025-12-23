@@ -10,7 +10,6 @@ import javafx.application.Platform;
 
 /**
  * Dialog för inloggning och registrering (VG-funktionalitet).
- * Hanterar all logik själv - Controller behöver bara anropa showAndWait().
  */
 public class LoginDialog extends Dialog<User> {
 
@@ -79,9 +78,8 @@ public class LoginDialog extends Dialog<User> {
         });
     }
 
-    /**
-     * Hanterar inloggning
-     */
+
+     // Hanterar inloggning
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
@@ -105,9 +103,7 @@ public class LoginDialog extends Dialog<User> {
         }
     }
 
-    /**
-     * Hanterar registrering av nytt konto
-     */
+    // Hanterar registrering av nytt konto
     private void handleRegister() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();

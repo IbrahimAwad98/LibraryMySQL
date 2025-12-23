@@ -513,9 +513,7 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
-    /**
-     * Bygger ett Book-objekt från ResultSet.
-     */
+    // Bygger ett Book-objekt från ResultSet.
     private Book buildBookFromResultSet(ResultSet rs) throws SQLException {
         int bookID = rs.getInt("bookID");
         String ISBN = rs.getString("ISBN");
@@ -523,7 +521,6 @@ public class BooksDb implements BooksDbInterface {
         Date publishedDate = rs.getDate("publishedDate");
 
         Book book = new Book(bookID, ISBN, title, publishedDate);
-
 
         int addedByUserID = rs.getInt("addedByUserID");
         if (!rs.wasNull()) {
@@ -559,9 +556,7 @@ public class BooksDb implements BooksDbInterface {
         return book;
     }
 
-    /**
-     * Bygger ett Author-objekt från den aktuella ResultSet-raden.
-     */
+    // Bygger ett Author-objekt från den aktuella ResultSet-raden.
     private Author buildAuthorFromResultSet(ResultSet rs) throws SQLException {
         int authorID = rs.getInt("authorID");
         String name = rs.getString("name");
@@ -569,9 +564,7 @@ public class BooksDb implements BooksDbInterface {
         return new Author(authorID, name, birthDate);
     }
 
-    /**
-     * Bygger ett Genere-objekt från den aktuella ResultSet-raden.
-     */
+    // Bygger ett Genere-objekt från den aktuella ResultSet-raden.
     private Genre buildGenreFromResultSet(ResultSet rs) throws SQLException {
         int genreID = rs.getInt("genreID");
         String genreName = rs.getString("genreName");
@@ -866,22 +859,22 @@ public class BooksDb implements BooksDbInterface {
     public void insertAuthorAsUser(Author author, int userID) throws BooksDbException {
         String sql = "INSERT INTO T_Author (name, birthDate, addedByUserID) VALUES (?, ?, ?)";
 
-        try (PreparedStatement pstmt = dbConnection.getConnection().prepareStatement(sql,
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql,
                 Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, author.getName());
+            preparedStatement.setString(1, author.getName());
 
             if (author.getBirthDate() != null) {
-                pstmt.setDate(2, author.getBirthDate());
+                preparedStatement.setDate(2, author.getBirthDate());
             } else {
-                pstmt.setNull(2, java.sql.Types.DATE);
+                preparedStatement.setNull(2, java.sql.Types.DATE);
             }
 
-            pstmt.setInt(3, userID);
+            preparedStatement.setInt(3, userID);
 
-            pstmt.executeUpdate();
+            preparedStatement.executeUpdate();
 
             // Sätt authorID på objektet
-            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+            try (ResultSet rs = preparedStatement.getGeneratedKeys()) {
                 if (rs.next()) {
                     author.setAuthorID(rs.getInt(1));
                 }
@@ -892,22 +885,20 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
-    /**
-     * VG Helper: Lägger till bokpost med användarID
-     */
+    // Lägger till bokpost med användarID
     private int insertBookRecordWithUser(Connection con, Book book, int userID) throws SQLException {
         String sql = "INSERT INTO T_Book (ISBN, title, publishedDate, addedByUserID) " +
                 "VALUES (?, ?, ?, ?)";
 
-        try (PreparedStatement pstmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, book.getISBN());
-            pstmt.setString(2, book.getTitle());
-            pstmt.setDate(3, book.getPublishedDate());
-            pstmt.setInt(4, userID);
+        try (PreparedStatement preparedStatement = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            preparedStatement.setString(1, book.getISBN());
+            preparedStatement.setString(2, book.getTitle());
+            preparedStatement.setDate(3, book.getPublishedDate());
+            preparedStatement.setInt(4, userID);
 
-            pstmt.executeUpdate();
+            preparedStatement.executeUpdate();
 
-            try (ResultSet keys = pstmt.getGeneratedKeys()) {
+            try (ResultSet keys = preparedStatement.getGeneratedKeys()) {
                 if (keys.next()) {
                     return keys.getInt(1);
                 }
@@ -937,12 +928,11 @@ public class BooksDb implements BooksDbInterface {
             // Ta bort boken (CASCADE tar bort kopplingar automatiskt)
             deleteBookRecord(connection, bookID);
 
-            // Ta bort "orphaned" författare
             for (int authorID : authorIDs) {
                 deleteAuthorIfOrphaned(connection, authorID);
             }
 
-            // userID används för logging/audit (kan sparas i audit-tabell om man vill)
+            // userID används för logging
             System.out.println("[AUDIT] Book " + bookID + " deleted by user " + userID);
 
             connection.commit();

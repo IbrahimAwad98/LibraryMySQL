@@ -5,15 +5,12 @@ import java.util.Objects;
 
 /**
  * Representerar en författare från T_Author tabellen i LibraryDB.
- * VG-UPPDATERINGAR:
- * addedBy: Spårar vilken användare som lade till författaren
  */
 public class Author {
-    private int authorID;      // Matchar T_Author.authorID
-    private String name;       // Matchar T_Author.name
-    private Date birthDate;    // Matchar T_Author.birthDate
+    private int authorID;
+    private String name;
+    private Date birthDate;
     private int addedBy;
-
 
     // Konstruktor för att läsa från databasen (med ID)
     public Author(int authorID, String name, Date birthDate) {
@@ -102,5 +99,4 @@ public class Author {
                 ", addedBy=" + addedBy +
                 '}';
     }
-
 }

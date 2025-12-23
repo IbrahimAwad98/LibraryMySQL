@@ -16,10 +16,8 @@ import se.kth.awad.bookdatabase.model.*;
 import javafx.application.Platform;
 import se.kth.awad.bookdatabase.model.User;
 
-
 /**
  * Huvudvyn för applikationen.
- * VG-VERSION: Inkluderar login-funktionalitet
  */
 public class BooksPane extends VBox {
 
@@ -32,16 +30,12 @@ public class BooksPane extends VBox {
     private Button loginButton;
     private Label userStatusLabel;
     private BookDBController controller;
-
     // Knappar som kräver inloggning
     private MenuItem addMenuItem;
     private MenuItem removeMenuItem;
     private MenuItem updateMenuItem;
     // Knappar som kräver för recension
     private MenuItem reviewMenuItem;
-
-
-
 
     public BooksPane() {}
 
@@ -81,11 +75,10 @@ public class BooksPane extends VBox {
         mainPane.setBottom(bottomPane);
         mainPane.setPadding(new Insets(10, 10, 10, 10));
 
-        // Lägg till menuBar, loginBox och mainPane
         this.getChildren().addAll(menuBar, loginBox, mainPane);
         VBox.setVgrow(mainPane, Priority.ALWAYS);
 
-        // VG: Starta med inaktiverade funktioner (ej inloggad)
+        // Starta med inaktiverade funktioner (ej inloggad)
         disableLoggedInFeatures();
     }
 
@@ -189,7 +182,7 @@ public class BooksPane extends VBox {
 
         Menu manageMenu = new Menu("Manage");
 
-        // VG: Spara referenser till menu items för att kunna aktivera/inaktivera dem
+        // Spara referenser till menu items för att kunna aktivera/inaktivera dem
         addMenuItem = new MenuItem("Add");
         addMenuItem.setOnAction(event -> {
             controller.addBook();
@@ -230,15 +223,12 @@ public class BooksPane extends VBox {
 
     //Skapa och returnera login-controls
     private HBox setupLoginControls() {
-        // User status label
         userStatusLabel = new Label("Not logged in");
         userStatusLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        // Login button
         loginButton = new Button("Login");
         loginButton.setOnAction(e -> handleLoginButton());
 
-        // Lägg till i en HBox
         HBox loginBox = new HBox(10);
         loginBox.setPadding(new Insets(10));
         loginBox.setAlignment(Pos.CENTER_LEFT);
@@ -251,17 +241,13 @@ public class BooksPane extends VBox {
     // Hantera login/logout-knappen
     private void handleLoginButton() {
         if (controller.isLoggedIn()) {
-            // Logga ut
             controller.logout();
         } else {
-            // Visa login-dialog
             controller.showLogin();
         }
     }
 
-    /**
-     * VG: Uppdatera login-status i GUI (anropas från Controller)
-     */
+    // Uppdatera login-status i GUI (anropas från Controller)
     public void updateLoginStatus(User user) {
         if (user != null) {
             userStatusLabel.setText("Login as: " + user.getUsername());

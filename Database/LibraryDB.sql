@@ -81,8 +81,8 @@ CREATE TABLE T_Book_Genre(
 INSERT INTO T_User (username, password) VALUES
 ('testuser', 'password123'),
 ('admin', 'admin123'),
-('alice', 'alice123'),
-('bob', 'bob123');
+('ibrahim', 'ibra123'),
+('anna', 'anna321');
 
 -- fyll i data
 INSERT INTO T_Author (name, birthDate, addedByUserID) VALUES

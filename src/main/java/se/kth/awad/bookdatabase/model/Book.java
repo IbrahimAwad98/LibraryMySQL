@@ -7,9 +7,6 @@ import java.util.Objects;
 /**
  * Representerar en bok från T_Book tabellen i LibraryDB.
  * Den har relation till Genre, author och rating
- * VG-UPPDATERINGAR:
- * - addedBy: Spårar vilken användare som lade till boken
- * - reviews: Lista med recensioner för denna bok
  */
 public class Book {
     private int bookID;
@@ -89,7 +86,6 @@ public class Book {
     }
 
     /**
-     *
      * @return direkt referens
      * den fungerar eftersom vi behöver ändra listor direkt
      * ingen säkerhets risk.
@@ -235,7 +231,6 @@ public class Book {
         return sb.toString();
     }
 
-
     public String getReviewsAsString(){
         if(reviews.isEmpty()){
             return "No reviews yet";
@@ -296,5 +291,4 @@ public class Book {
                 ", genres=" + genres.size() +
                 '}';
     }
-
 }

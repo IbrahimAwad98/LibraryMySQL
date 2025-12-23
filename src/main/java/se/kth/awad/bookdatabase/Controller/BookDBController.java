@@ -249,7 +249,6 @@ public class BookDBController {
                 }
                 Book book = books.get(0);
 
-
                 // Kolla om användaren redan betygsatt
                 if (booksDb.hasUserRatedBook(book.getBookID(), currentUser.getUserID())) {
                     throw new BooksDbException(
@@ -306,7 +305,6 @@ public class BookDBController {
      // Visa login-dialog
     public void showLogin() {
         LoginDialog dialog = new LoginDialog(booksDb);
-
         Optional<User> result = dialog.showAndWait();
         result.ifPresent(user -> {
             currentUser = user;
@@ -325,7 +323,7 @@ public class BookDBController {
         }
     }
 
-     // Hämta aktuell användare
+    // Hämta aktuell användare
     public User getCurrentUser() {
         return currentUser;
     }
@@ -396,9 +394,7 @@ public class BookDBController {
         thread.start();
     }
 
-    /**
-     * Visa detaljer om en bok inkl. författare och recensioner
-     */
+    // Visa detaljer om en bok inkl. författare och recensioner
     public void showBookDetails(Book book) {
         Task<List<Review>> task = new Task<List<Review>>() {
             @Override
