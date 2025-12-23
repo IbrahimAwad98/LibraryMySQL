@@ -4,34 +4,35 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
 /**
  * JDBC-implementation av BooksDbInterface.
- * Denna klass kommunicerar direkt med LibraryDB i MySQL.
+ * Denna klass hanterar all kommunikation med LibraryDB i MySQL.
  */
 public class BooksDb implements BooksDbInterface {
 
-    //skapa konstanter för den gemensamma SQL-frågor
-    private static final String BASE_BOOK_QUERY =
-            "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
-                    "B.addedByUserID, U.username AS addedByUsername, " +
-                    "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
-                    "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
-                    "AVG(R.ratingValue) AS averageRating, " +
-                    "COUNT(DISTINCT R.ratingID) AS numRatings " +
-                    "FROM T_Book AS B " +
-                    "LEFT JOIN T_User AS U ON B.addedByUserID = U.userID " +
-                    "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
-                    "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
-                    "LEFT JOIN T_Book_Genre AS BG ON B.bookID = BG.bookID " +
-                    "LEFT JOIN T_Genre AS G ON BG.genreID = G.genreID " +
-                    "LEFT JOIN T_Rating AS R ON B.bookID = R.bookID ";
+    // Gemensam SQL-fråga för att hämta böcker med alla relationer
+    private static final String BASE_BOOK_QUERY = "SELECT B.bookID, B.ISBN, B.title, B.publishedDate, " +
+            "B.addedByUserID, U.username AS addedByUsername, " +
+            "GROUP_CONCAT(DISTINCT A.name SEPARATOR ', ') AS authors, " +
+            "GROUP_CONCAT(DISTINCT G.genreName SEPARATOR ', ') AS genres, " +
+            "AVG(R.ratingValue) AS averageRating, " +
+            "COUNT(DISTINCT R.ratingID) AS numRatings " +
+            "FROM T_Book AS B " +
+            "LEFT JOIN T_User AS U ON B.addedByUserID = U.userID " +
+            "LEFT JOIN T_Book_Author AS BA ON B.bookID = BA.bookID " +
+            "LEFT JOIN T_Author AS A ON BA.authorID = A.authorID " +
+            "LEFT JOIN T_Book_Genre AS BG ON B.bookID = BG.bookID " +
+            "LEFT JOIN T_Genre AS G ON BG.genreID = G.genreID " +
+            "LEFT JOIN T_Rating AS R ON B.bookID = R.bookID ";
 
-    private static final String GROUP_BY_CLAUSE =
-            "GROUP BY B.bookID, B.ISBN, B.title, B.publishedDate, B.addedByUserID, U.username";
+    private static final String GROUP_BY_CLAUSE = "GROUP BY B.bookID, B.ISBN, B.title, B.publishedDate, B.addedByUserID, U.username";
 
     private final DatabaseConnection dbConnection;
 
-    // Anslutnings Hantering
+    /**
+     * Konstruktor som skapar en instans med Singleton-anslutning.
+     */
     public BooksDb() {
         this.dbConnection = DatabaseConnection.getInstance();
     }
@@ -46,7 +47,7 @@ public class BooksDb implements BooksDbInterface {
         return dbConnection.disconnect();
     }
 
-    // bok sök-metoder
+    // Bok-sökmetoder
     @Override
     public List<Book> retrieveBookTable() throws BooksDbException {
         List<Book> result = new ArrayList<>();
@@ -54,7 +55,7 @@ public class BooksDb implements BooksDbInterface {
         String sql = BASE_BOOK_QUERY + GROUP_BY_CLAUSE;
 
         try (Statement statement = dbConnection.getConnection().createStatement();
-             ResultSet resultSet = statement.executeQuery(sql)) {
+                ResultSet resultSet = statement.executeQuery(sql)) {
 
             while (resultSet.next()) {
                 result.add(buildBookFromResultSet(resultSet));
@@ -72,8 +73,7 @@ public class BooksDb implements BooksDbInterface {
 
         String sql = BASE_BOOK_QUERY + "WHERE LOWER(B.title) LIKE ? " + GROUP_BY_CLAUSE;
 
-        //try with resources
-        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql);) {
+        try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
             preparedStatement.setString(1, "%" + searchTitle.toLowerCase() + "%");
 
             try (ResultSet rs = preparedStatement.executeQuery()) {
@@ -152,11 +152,12 @@ public class BooksDb implements BooksDbInterface {
     }
 
     @Override
-    public List<Book> searchBooksByRating(int  minRating) throws BooksDbException {
+    public List<Book> searchBooksByRating(int minRating) throws BooksDbException {
         List<Book> result = new ArrayList<>();
 
-        // OBS: HAVING används eftersom vi filtrerar på aggregerad data
-        String sql = BASE_BOOK_QUERY + GROUP_BY_CLAUSE + " HAVING MAX(R.ratingValue) = ?";
+        // Sök efter böcker med genomsnittsbetyg som avrundas till minRating
+        // HAVING används eftersom vi filtrerar på aggregerad data (AVG)
+        String sql = BASE_BOOK_QUERY + GROUP_BY_CLAUSE + " HAVING ROUND(AVG(R.ratingValue)) = ?";
 
         try (PreparedStatement preparedStatement = dbConnection.getConnection().prepareStatement(sql)) {
             preparedStatement.setInt(1, minRating);
@@ -178,15 +179,14 @@ public class BooksDb implements BooksDbInterface {
         Connection connection = null;
         try {
             connection = dbConnection.getConnection();
-            connection.setAutoCommit(false); // Starta transaktion
+            connection.setAutoCommit(false);
 
-            // Sätt in bokförteckningen
             int bookID = insertBookRecord(connection, book);
             book.setBookID(bookID);
 
-            // Hantera författare
             if (book.getAuthors() != null && !book.getAuthors().isEmpty()) {
-                System.out.println("[BooksDb] Processing " + book.getAuthors().size() + " author(s) for book: " + book.getTitle());
+                System.out.println(
+                        "[BooksDb] Processing " + book.getAuthors().size() + " author(s) for book: " + book.getTitle());
 
                 for (Author author : book.getAuthors()) {
                     System.out.println("[BooksDb] Processing author: " + author.getName());
@@ -195,9 +195,9 @@ public class BooksDb implements BooksDbInterface {
                 }
             }
 
-            // Hantera genre
             if (book.getGenres() != null && !book.getGenres().isEmpty()) {
-                System.out.println("[BooksDb] Processing " + book.getGenres().size() + " genre(s) for book: " + book.getTitle());
+                System.out.println(
+                        "[BooksDb] Processing " + book.getGenres().size() + " genre(s) for book: " + book.getTitle());
 
                 for (Genre genre : book.getGenres()) {
                     System.out.println("[BooksDb] Processing genre: " + genre.getGenreName());
@@ -374,7 +374,7 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
-    //privata hjälp metoder
+    // privata hjälp metoder
     private int insertBookRecord(Connection con, Book book) throws SQLException {
         String sql = "INSERT INTO T_Book (ISBN, title, publishedDate) VALUES (?, ?, ?)";
 
@@ -397,6 +397,9 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
+    /**
+     * Hämtar eller skapar en författare. Returnerar författarens ID.
+     */
     private int getOrCreateAuthor(Connection con, Author author) throws SQLException {
         String checkSql = "SELECT authorID FROM T_Author WHERE name = ?";
 
@@ -409,7 +412,7 @@ public class BooksDb implements BooksDbInterface {
                 }
             }
         }
-        //skapa ny
+        // Skapa ny författare om den inte finns
         String insertSql = "INSERT INTO T_Author (name, birthDate) VALUES (?, ?)";
         try (PreparedStatement preparedStatement = con.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, author.getName());
@@ -427,6 +430,9 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
+    /**
+     * Hämtar eller skapar en genre. Returnerar genrens ID.
+     */
     private int getOrCreateGenre(Connection con, Genre genre) throws SQLException {
         String checkSql = "SELECT genreID FROM T_Genre WHERE genreName = ?";
 
@@ -439,7 +445,7 @@ public class BooksDb implements BooksDbInterface {
                 }
             }
         }
-        //skapa ny
+        // Skapa ny genre om den inte finns
         String insertSql = "INSERT INTO T_Genre (genreName) VALUES (?)";
         try (PreparedStatement preparedStatement = con.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             preparedStatement.setString(1, genre.getGenreName());
@@ -480,6 +486,9 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
+    /**
+     * Tar bort en bok från databasen.
+     */
     private void deleteBookRecord(Connection con, int bookID) throws SQLException {
         String sql = "DELETE FROM T_Book WHERE bookID = ?";
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
@@ -513,7 +522,9 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
-    // Bygger ett Book-objekt från ResultSet.
+    /**
+     * Bygger ett Book-objekt från en ResultSet-rad.
+     */
     private Book buildBookFromResultSet(ResultSet rs) throws SQLException {
         int bookID = rs.getInt("bookID");
         String ISBN = rs.getString("ISBN");
@@ -527,11 +538,11 @@ public class BooksDb implements BooksDbInterface {
             book.setAddedByUserID(addedByUserID);
             String addedByUsername = rs.getString("addedByUsername");
             if (addedByUsername != null) {
-                book.setAddedByUsername(addedByUsername);  // ← NY RAD!
+                book.setAddedByUsername(addedByUsername);
             }
         }
 
-        // Hämta det unika betyget (inte genomsnitt)
+        // Hämta genomsnittsbetyget
         int rating = rs.getInt("averageRating");
         if (!rs.wasNull()) {
             book.setAverageRating(rating);
@@ -556,7 +567,9 @@ public class BooksDb implements BooksDbInterface {
         return book;
     }
 
-    // Bygger ett Author-objekt från den aktuella ResultSet-raden.
+    /**
+     * Bygger ett Author-objekt från en ResultSet-rad.
+     */
     private Author buildAuthorFromResultSet(ResultSet rs) throws SQLException {
         int authorID = rs.getInt("authorID");
         String name = rs.getString("name");
@@ -564,12 +577,15 @@ public class BooksDb implements BooksDbInterface {
         return new Author(authorID, name, birthDate);
     }
 
-    // Bygger ett Genere-objekt från den aktuella ResultSet-raden.
+    /**
+     * Bygger ett Genre-objekt från en ResultSet-rad.
+     */
     private Genre buildGenreFromResultSet(ResultSet rs) throws SQLException {
         int genreID = rs.getInt("genreID");
         String genreName = rs.getString("genreName");
         return new Genre(genreID, genreName);
     }
+
     @Override
     public List<Author> getAuthorsForBook(int bookID) throws BooksDbException {
         List<Author> result = new ArrayList<>();
@@ -600,7 +616,7 @@ public class BooksDb implements BooksDbInterface {
         String sql = "SELECT authorID, name, birthDate FROM T_Author ORDER BY name";
 
         try (Statement statement = dbConnection.getConnection().createStatement();
-             ResultSet resultSet = statement.executeQuery(sql)) {
+                ResultSet resultSet = statement.executeQuery(sql)) {
 
             while (resultSet.next()) {
                 result.add(buildAuthorFromResultSet(resultSet));
@@ -618,7 +634,7 @@ public class BooksDb implements BooksDbInterface {
         String sql = "SELECT genreID, genreName FROM T_Genre ORDER BY genreName";
 
         try (Statement statement = dbConnection.getConnection().createStatement();
-             ResultSet resultSet = statement.executeQuery(sql)) {
+                ResultSet resultSet = statement.executeQuery(sql)) {
 
             while (resultSet.next()) {
                 result.add(buildGenreFromResultSet(resultSet));
@@ -717,8 +733,7 @@ public class BooksDb implements BooksDbInterface {
             if (e.getMessage().contains("Duplicate entry") ||
                     e.getMessage().contains("unique_user_book_rating")) {
                 throw new BooksDbException(
-                        "Du har redan betygsatt denna bok! Endast ett betyg per användare tillåts."
-                );
+                        "Du har redan betygsatt denna bok! Endast ett betyg per användare tillåts.");
             }
             throw new BooksDbException("Databasfel vid betygsättning: " + e.getMessage(), e);
         }
@@ -787,12 +802,10 @@ public class BooksDb implements BooksDbInterface {
                     String text = rs.getString("reviewText");
                     LocalDate date = rs.getDate("reviewDate").toLocalDate();
 
-                    // Skapa User-objekt för recensenten
                     int userId = rs.getInt("userID");
                     String username = rs.getString("username");
                     User user = new User(userId, username);
 
-                    // Skapa Review-objekt
                     Review review = new Review(reviewID, book, user, text, date);
                     reviews.add(review);
                 }
@@ -806,25 +819,22 @@ public class BooksDb implements BooksDbInterface {
 
     @Override
     public void insertBookAsUser(Book book, List<Integer> authorIDs,
-                                 List<String> genreNames, int userID)
+            List<String> genreNames, int userID)
             throws BooksDbException {
         Connection connection = null;
         try {
             connection = dbConnection.getConnection();
             connection.setAutoCommit(false);
 
-            // Lägg till boken MED userID
             int bookID = insertBookRecordWithUser(connection, book, userID);
             book.setBookID(bookID);
 
-            // Koppla författare
             if (authorIDs != null && !authorIDs.isEmpty()) {
                 for (int authorID : authorIDs) {
                     linkBookAuthor(connection, bookID, authorID);
                 }
             }
 
-            // Koppla genrer
             if (genreNames != null && !genreNames.isEmpty()) {
                 for (String genreName : genreNames) {
                     Genre genre = new Genre(genreName);
@@ -873,7 +883,6 @@ public class BooksDb implements BooksDbInterface {
 
             preparedStatement.executeUpdate();
 
-            // Sätt authorID på objektet
             try (ResultSet rs = preparedStatement.getGeneratedKeys()) {
                 if (rs.next()) {
                     author.setAuthorID(rs.getInt(1));
@@ -885,7 +894,9 @@ public class BooksDb implements BooksDbInterface {
         }
     }
 
-    // Lägger till bokpost med användarID
+    /**
+     * Lägger till en bokpost med användarID (för VG-funktionalitet).
+     */
     private int insertBookRecordWithUser(Connection con, Book book, int userID) throws SQLException {
         String sql = "INSERT INTO T_Book (ISBN, title, publishedDate, addedByUserID) " +
                 "VALUES (?, ?, ?, ?)";
@@ -932,7 +943,7 @@ public class BooksDb implements BooksDbInterface {
                 deleteAuthorIfOrphaned(connection, authorID);
             }
 
-            // userID används för logging
+            // Logging för audit
             System.out.println("[AUDIT] Book " + bookID + " deleted by user " + userID);
 
             connection.commit();

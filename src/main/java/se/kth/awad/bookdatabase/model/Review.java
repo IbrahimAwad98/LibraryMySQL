@@ -9,9 +9,8 @@ public class Review {
     private String reviewText;
     private LocalDate reviewDate;
 
-    // Huvudkonstruktor (när man hämtar från databas)
     public Review(int reviewID, int bookID, User user,
-                  String reviewText, LocalDate reviewDate) {
+            String reviewText, LocalDate reviewDate) {
         this.reviewID = reviewID;
         this.bookID = bookID;
         this.user = user;
@@ -19,37 +18,35 @@ public class Review {
         this.reviewDate = reviewDate;
     }
 
-    // Konstruktor för ny recension (utan ID)
     public Review(int bookID, User user, String reviewText, LocalDate reviewDate) {
         this(-1, bookID, user, reviewText, reviewDate);
     }
 
-    // Konstruktor för ny recension (dagens datum)
     public Review(int bookID, User user, String reviewText) {
         this(-1, bookID, user, reviewText, LocalDate.now());
     }
 
-    public int getReviewID(){
+    public int getReviewID() {
         return reviewID;
     }
 
-    public int getBookID(){
+    public int getBookID() {
         return bookID;
     }
 
-    public User getUser(){
+    public User getUser() {
         return user;
     }
 
-    public String getReviewText(){
+    public String getReviewText() {
         return reviewText;
     }
 
-    public LocalDate getReviewDate(){
+    public LocalDate getReviewDate() {
         return reviewDate;
     }
 
-    public void setReviewID(int reviewID){
+    public void setReviewID(int reviewID) {
         this.reviewID = reviewID;
     }
 

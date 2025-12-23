@@ -1,7 +1,6 @@
 package se.kth.awad.bookdatabase.Controller;
 
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import se.kth.awad.bookdatabase.model.*;
 import se.kth.awad.bookdatabase.view.*;
 
@@ -19,20 +18,22 @@ public class BookDBController {
 
     private final BooksPane booksView;
     private final BooksDbInterface booksDb;
-    private User currentUser = null;
+    private User currentUser = null; // Null om ingen användare är inloggad
 
     public BookDBController(BooksDbInterface booksDb, BooksPane booksView) {
         this.booksDb = booksDb;
         this.booksView = booksView;
     }
 
-    //Anslut till databasen och ladda alla böcker.
+    /**
+     * Ansluter till databasen och laddar alla böcker.
+     */
     public void connectToDb() {
-        try{
+        try {
             boolean isConnected = booksDb.connect("LibraryDB");
-            if(isConnected){
-                List <Book> books = new ArrayList<>();
-                try{
+            if (isConnected) {
+                List<Book> books = new ArrayList<>();
+                try {
                     books = booksDb.retrieveBookTable();
                     booksView.displayBooks(books);
                     booksView.showAlertAndWait("Successfully connected to database 'LibraryDB'", CONFIRMATION);
@@ -49,18 +50,19 @@ public class BookDBController {
                 errorDetails += "\n\nCause: " + e.getCause().getMessage();
             }
             booksView.showAlertAndWait(
-                "Connection failed!\n\n" + errorDetails + 
-                "\n\nPlease check:\n" +
-                "1. MySQL server is running\n" +
-                "2. Database 'LibraryDB' exists\n" +
-                "3. User has proper permissions",
-                ERROR
-            );
+                    "Connection failed!\n\n" + errorDetails +
+                            "\n\nPlease check:\n" +
+                            "1. MySQL server is running\n" +
+                            "2. Database 'LibraryDB' exists\n" +
+                            "3. User has proper permissions",
+                    ERROR);
             e.printStackTrace();
         }
     }
 
-    // Koppla ned från databasen och töm tabellen.
+    /**
+     * Kopplar från databasen och tömmer tabellen.
+     */
     public void disconnect() {
         List<Book> books = new ArrayList<>();
         try {
@@ -77,7 +79,9 @@ public class BookDBController {
         }
     }
 
-    //Sök efter böcker baserat på vald söktyp.
+    /**
+     * Söker efter böcker baserat på vald söktyp.
+     */
     public void onSearchSelected(String searchFor, SearchMode mode) {
         if (searchFor == null || searchFor.isEmpty()) {
             booksView.showAlertAndWait("Enter a search string!", WARNING);
@@ -86,7 +90,7 @@ public class BookDBController {
         Task<List<Book>> task = new Task<List<Book>>() {
             @Override
             protected List<Book> call() throws Exception {
-                switch (mode){
+                switch (mode) {
                     case Title:
                         return booksDb.searchBooksByTitle(searchFor);
                     case ISBN:
@@ -103,31 +107,33 @@ public class BookDBController {
                 }
             }
         };
-        task.setOnSucceeded(e->{
+        task.setOnSucceeded(e -> {
             List<Book> result = task.getValue();
-            if(result == null || result.isEmpty()){
+            if (result == null || result.isEmpty()) {
                 booksView.showAlertAndWait("No results found.", INFORMATION);
-            }else{
+            } else {
                 booksView.displayBooks(result); // Visa resultaten i TableView
             }
         });
-        //misslyckas ! då visa fel
-        task.setOnFailed(e->{
+        // misslyckas ! då visa fel
+        task.setOnFailed(e -> {
             Throwable exception = task.getException();
             booksView.showAlertAndWait("Database error: " + exception.getMessage(), ERROR);
             exception.printStackTrace();
         });
-        //starta tråden för att inte frysa ui
+        // starta tråden för att inte frysa ui
         Thread thread = new Thread(task);
         thread.setDaemon(true);
         thread.start();
     }
 
-    // Visa dialog och lägg till ny bok.
+    /**
+     * Visar dialog och lägger till ny bok.
+     */
     public void addBook() {
-        AddBookDialog dialog = new AddBookDialog();
+        AddBookDialog dialog = new AddBookDialog(booksDb, currentUser);
         Optional<Book> result = dialog.showAndWait();
-        if(result.isEmpty()) {
+        if (result.isEmpty()) {
             booksView.showAlertAndWait("Book addition cancelled", INFORMATION);
             return;
         }
@@ -149,17 +155,16 @@ public class BookDBController {
                         genreNames.add(genre.getGenreName());
                     }
                 }
-                // VG: Använd insertBookAsUser
                 booksDb.insertBookAsUser(book, authorIDs, genreNames, currentUser.getUserID());
                 return null;
             }
         };
 
-        task.setOnSucceeded(e->{
+        task.setOnSucceeded(e -> {
             try {
                 refreshBookList();
                 booksView.showAlertAndWait("Book '" + book.getTitle() + "' added successfully", CONFIRMATION);
-            }catch (BooksDbException ex) {
+            } catch (BooksDbException ex) {
                 booksView.showAlertAndWait("Error refreshing list: " + ex.getMessage(), ERROR);
             }
         });
@@ -175,8 +180,16 @@ public class BookDBController {
         thread.start();
     }
 
-    //Visa dialog och ta bort bok.
+    /**
+     * Visar dialog och tar bort bok.
+     * Krav F: Kräver att användaren är inloggad.
+     */
     public void removeBook() {
+        if (!isLoggedIn()) {
+            booksView.showAlertAndWait("You must be logged in to remove books!", WARNING);
+            return;
+        }
+
         RemoveBookDialog dialog = new RemoveBookDialog();
         Optional<String> titleResult = dialog.showAndWait();
 
@@ -186,12 +199,12 @@ public class BookDBController {
         }
         String title = titleResult.get().trim();
 
-        Task<Void>task = new Task<Void>() {
+        Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
                 List<Book> books = booksDb.searchBooksByTitle(title);
-                if (books.isEmpty()){
-                    throw new BooksDbException("No book found with title: "+ title);
+                if (books.isEmpty()) {
+                    throw new BooksDbException("No book found with title: " + title);
                 }
                 Book book = books.get(0);
                 booksDb.deleteBook(book);
@@ -199,20 +212,20 @@ public class BookDBController {
             }
         };
         task.setOnSucceeded(e -> {
-            try{
+            try {
                 refreshBookList();
                 booksView.showAlertAndWait("Book '" + title + "' deleted successfully", CONFIRMATION);
-            }catch(BooksDbException ex) {
-                booksView.showAlertAndWait("Error refreshing list: "+ ex.getMessage(), ERROR);
+            } catch (BooksDbException ex) {
+                booksView.showAlertAndWait("Error refreshing list: " + ex.getMessage(), ERROR);
                 ex.printStackTrace();
             }
         });
-        task.setOnFailed(e->{
+        task.setOnFailed(e -> {
             Throwable ex = task.getException();
             if (ex instanceof BooksDbException) {
-                booksView.showAlertAndWait(ex.getMessage(),WARNING);
-            }else {
-                booksView.showAlertAndWait("Error removing book: " + ex.getMessage(),ERROR);
+                booksView.showAlertAndWait(ex.getMessage(), WARNING);
+            } else {
+                booksView.showAlertAndWait("Error removing book: " + ex.getMessage(), ERROR);
             }
         });
 
@@ -220,13 +233,17 @@ public class BookDBController {
         thread.setDaemon(true);
         thread.start();
     }
-    //Visa dialog och lägg till betyg på bok.
+
+    /**
+     * Visar dialog och lägger till/uppdaterar betyg på bok.
+     * Krav G: Max ett betyg per bok per användare.
+     */
     public void updateGrade() {
         UpdateGradeDialog dialog = new UpdateGradeDialog();
         Optional<UpdateGradeDialog.GradeUpdate> result = dialog.showAndWait();
 
-        if(!result.isPresent()){
-            booksView.showAlertAndWait("Grade Update Cancelled!!!",INFORMATION);
+        if (!result.isPresent()) {
+            booksView.showAlertAndWait("Grade Update Cancelled!!!", INFORMATION);
             return;
         }
 
@@ -244,7 +261,7 @@ public class BookDBController {
             @Override
             protected Void call() throws Exception {
                 List<Book> books = booksDb.searchBooksByTitle(trimmedTitle);
-                if(books.isEmpty()){
+                if (books.isEmpty()) {
                     throw new BooksDbException("No book found with title: " + trimmedTitle);
                 }
                 Book book = books.get(0);
@@ -252,8 +269,7 @@ public class BookDBController {
                 // Kolla om användaren redan betygsatt
                 if (booksDb.hasUserRatedBook(book.getBookID(), currentUser.getUserID())) {
                     throw new BooksDbException(
-                            "You have already rated this book! You can only give one rating per book."
-                    );
+                            "You have already rated this book! You can only give one rating per book.");
                 }
                 booksDb.rateBookAsUser(book.getBookID(), currentUser.getUserID(), newGrade);
 
@@ -261,32 +277,29 @@ public class BookDBController {
             }
         };
 
-        task.setOnSucceeded(e->{
+        task.setOnSucceeded(e -> {
             try {
                 refreshBookList();
                 booksView.showAlertAndWait(
                         "Rating for '" + trimmedTitle + "' set to " + newGrade + " (replaced previous rating)",
-                        CONFIRMATION
-                );
+                        CONFIRMATION);
             } catch (BooksDbException ex) {
                 booksView.showAlertAndWait(
                         "Error refreshing list: " + ex.getMessage(),
-                        ERROR
-                );
+                        ERROR);
                 ex.printStackTrace();
             }
 
         });
 
-        task.setOnFailed(e->{
+        task.setOnFailed(e -> {
             Throwable exception = task.getException();
             if (exception instanceof BooksDbException) {
                 booksView.showAlertAndWait(exception.getMessage(), WARNING);
             } else {
                 booksView.showAlertAndWait(
                         "Error updating grade: " + exception.getMessage(),
-                        ERROR
-                );
+                        ERROR);
             }
             exception.printStackTrace();
         });
@@ -296,13 +309,17 @@ public class BookDBController {
         thread.start();
     }
 
-     // Hjälpmetod för att ladda om alla böcker från databasen.
+    /**
+     * Hjälpmetod för att ladda om alla böcker från databasen.
+     */
     private void refreshBookList() throws BooksDbException {
         List<Book> books = booksDb.retrieveBookTable();
         booksView.displayBooks(books);
     }
 
-     // Visa login-dialog
+    /**
+     * Visar inloggningsdialog.
+     */
     public void showLogin() {
         LoginDialog dialog = new LoginDialog(booksDb);
         Optional<User> result = dialog.showAndWait();
@@ -313,7 +330,9 @@ public class BookDBController {
         });
     }
 
-     // Logga ut användaren
+    /**
+     * Loggar ut användaren.
+     */
     public void logout() {
         if (currentUser != null) {
             String username = currentUser.getUsername();
@@ -323,19 +342,25 @@ public class BookDBController {
         }
     }
 
-    // Hämta aktuell användare
+    /**
+     * Returnerar den nuvarande inloggade användaren.
+     */
     public User getCurrentUser() {
         return currentUser;
     }
 
-    // Kolla om användare är inloggad
+    /**
+     * Kontrollerar om en användare är inloggad.
+     */
     public boolean isLoggedIn() {
         return currentUser != null;
     }
 
-    // Lägg till recension för en bok
+    /**
+     * Lägger till recension för en bok.
+     * Krav H: Kräver att användaren är inloggad.
+     */
     public void addReview() {
-        // Validera inloggning
         if (!isLoggedIn()) {
             booksView.showAlertAndWait("You must be logged in to write reviews!", WARNING);
             return;
@@ -355,15 +380,12 @@ public class BookDBController {
         Task<Void> task = new Task<Void>() {
             @Override
             protected Void call() throws Exception {
-                // Hitta boken
                 List<Book> books = booksDb.searchBooksByTitle(bookTitle);
                 if (books.isEmpty()) {
                     throw new BooksDbException("No book found with the title: " + bookTitle);
                 }
 
                 Book book = books.get(0);
-
-                // Lägg till recension
                 booksDb.addReview(book.getBookID(), currentUser.getUserID(), reviewText);
                 return null;
             }
@@ -372,8 +394,7 @@ public class BookDBController {
         task.setOnSucceeded(e -> {
             booksView.showAlertAndWait(
                     "Review for '" + bookTitle + "' has been added!",
-                    CONFIRMATION
-            );
+                    CONFIRMATION);
         });
 
         task.setOnFailed(e -> {
@@ -383,8 +404,7 @@ public class BookDBController {
             } else {
                 booksView.showAlertAndWait(
                         "Error adding review: " + exception.getMessage(),
-                        ERROR
-                );
+                        ERROR);
             }
             exception.printStackTrace();
         });
@@ -394,21 +414,27 @@ public class BookDBController {
         thread.start();
     }
 
-    // Visa detaljer om en bok inkl. författare och recensioner
+    /**
+     * Visar detaljer om en bok inklusive författare och recensioner.
+     * Krav D: Använder Alert för att visa detaljerad information.
+     */
     public void showBookDetails(Book book) {
-        Task<List<Review>> task = new Task<List<Review>>() {
+        Task<DetailsData> task = new Task<DetailsData>() {
             @Override
-            protected List<Review> call() throws Exception {
-                return booksDb.getReviewsForBook(book.getBookID());
+            protected DetailsData call() throws Exception {
+                List<Review> reviews = booksDb.getReviewsForBook(book.getBookID());
+                List<Author> authors = booksDb.getAuthorsForBook(book.getBookID());
+                return new DetailsData(reviews, authors);
             }
         };
 
         task.setOnSucceeded(e -> {
-            List<Review> reviews = task.getValue();
+            DetailsData data = task.getValue();
+            List<Review> reviews = data.reviews;
+            List<Author> authors = data.authors;
 
             StringBuilder content = new StringBuilder();
 
-            // VG: Visa vem som lade till boken
             content.append("ADDED BY:\n");
             if (book.getAddedByUsername() != null) {
                 content.append(book.getAddedByUsername());
@@ -419,12 +445,23 @@ public class BookDBController {
             }
             content.append("\n\n");
 
-            // Författare
             content.append("AUTHORS:\n");
-            content.append(book.getAuthorsAsString());
+            if (authors.isEmpty()) {
+                content.append("No authors found");
+            } else {
+                for (int i = 0; i < authors.size(); i++) {
+                    Author author = authors.get(i);
+                    content.append("• ").append(author.getName());
+                    if (author.getBirthDate() != null) {
+                        content.append(" (Born: ").append(author.getBirthDate()).append(")");
+                    }
+                    if (i < authors.size() - 1) {
+                        content.append("\n");
+                    }
+                }
+            }
             content.append("\n\n");
 
-            // Recensioner
             content.append("RECENSIONER:\n");
             if (reviews.isEmpty()) {
                 content.append("No reviews yet. Be the first to review!");
@@ -450,6 +487,7 @@ public class BookDBController {
         });
 
         task.setOnFailed(e -> {
+            // Fallback: visa åtminstone författarnamn om det går fel
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Authors");
             alert.setHeaderText("Authors for: " + book.getTitle());
@@ -460,5 +498,18 @@ public class BookDBController {
         Thread thread = new Thread(task);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    /**
+     * Hjälpklass för att bära både recensioner och författare.
+     */
+    private static class DetailsData {
+        final List<Review> reviews;
+        final List<Author> authors;
+
+        DetailsData(List<Review> reviews, List<Author> authors) {
+            this.reviews = reviews;
+            this.authors = authors;
+        }
     }
 }
