@@ -22,7 +22,7 @@ CREATE TABLE T_Author(
     authorID INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     birthDate DATE,
-    addedByUserID INT NOT NULL,  -- LÄGG TILL DIREKT HÄR
+    addedByUserID INT NOT NULL,
     FOREIGN KEY (addedByUserID) REFERENCES T_User(userID)
 );
 
@@ -43,7 +43,7 @@ CREATE TABLE T_Book(
 CREATE TABLE T_Rating(
     ratingID INT AUTO_INCREMENT PRIMARY KEY,
     bookID INT NOT NULL,
-    userID INT NOT NULL,  -- LÄGG TILL DIREKT
+    userID INT NOT NULL,
     ratingValue INT NOT NULL CHECK (ratingValue BETWEEN 1 AND 10),
     ratingDate DATE NOT NULL,
     FOREIGN KEY (bookID) REFERENCES T_Book(bookID) ON DELETE CASCADE,
