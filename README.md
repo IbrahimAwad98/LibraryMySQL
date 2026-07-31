@@ -8,6 +8,8 @@ Termin: HT 2025
 
 Grupp: Grupp 5 - Ibrahim & Ahmed
 
+> Built together with Ahmed as a pair project at KTH.
+
 översikt
 
 En JavaFX-klientapplikation som ansluter till en MySQL-databas för att hantera ett förenklat bibliotekssystem. Applikationen låter användare söka efter böcker, visa författarinformation, bläddra bland genrer och hantera bokbetyg.
